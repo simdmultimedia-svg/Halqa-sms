@@ -925,11 +925,23 @@ boot();
 
 // Register service worker for offline support
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
+  window.addEventListener("load", async () => {
+    // Unregister any existing service workers to clear old cache
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      console.log("[SW] Unregistering old service worker:", registration.scope);
+      await registration.unregister();
+    }
+
+    // Register new service worker
+    navigator.serviceWorker.register("/sw.js?v=20261001")
       .then((reg) => {
         console.log("[SW] Registered, scope:", reg.scope);
         reg.update();
+        // Force the new service worker to become active immediately
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
       })
       .catch((err) => console.warn("[SW] Registration failed:", err));
   });
