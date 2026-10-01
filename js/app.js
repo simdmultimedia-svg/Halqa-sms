@@ -790,133 +790,134 @@ async function boot() {
         }
       }
     });
+  }
 
-    const bioBtn = $("#bio-login-btn");
-    if (bioBtn) {
-      if (localStorage.getItem("CIC KANO:bio_default")) {
-        bioBtn.style.display = "block";
+  const bioBtn = $("#bio-login-btn");
+  if (bioBtn) {
+    if (localStorage.getItem("CIC KANO:bio_default")) {
+      bioBtn.style.display = "block";
+    }
+    bioBtn.addEventListener("click", async () => {
+      try {
+        bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
+        const { email, password } = await loginWithBiometric();
+        const loginEmail = $("#login-email");
+        const loginPassword = $("#login-password");
+        const loginForm = $("#login-form");
+        if (loginEmail) loginEmail.value = email;
+        if (loginPassword) loginPassword.value = password;
+        if (loginForm) loginForm.dispatchEvent(new Event("submit", { cancelable: true }));
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
       }
-      bioBtn.addEventListener("click", async () => {
-        try {
-          bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
-          const { email, password } = await loginWithBiometric();
-          const loginEmail = $("#login-email");
-          const loginPassword = $("#login-password");
-          const loginForm = $("#login-form");
-          if (loginEmail) loginEmail.value = email;
-          if (loginPassword) loginPassword.value = password;
-          if (loginForm) loginForm.dispatchEvent(new Event("submit", { cancelable: true }));
-        } catch (err) {
-          toast(err.message, "error");
-        } finally {
-          bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
-        }
-      });
-    }
-
-    const hwBtn = $("#hw-login-btn");
-    const hwStatus = $("#hw-scanner-status");
-    if (hwBtn && hwStatus) {
-      setInterval(async () => {
-        const loginView = $("#login-view");
-        if (loginView && loginView.classList.contains("hidden")) return; // Stop polling if outside login screen
-
-        const isAvailable = await fingerprintServiceAvailable();
-        if (isAvailable) {
-          hwStatus.textContent = "🟢 Scanner Connected";
-          hwStatus.style.color = "var(--success)";
-          hwBtn.style.display = "block";
-          hwBtn.disabled = false;
-        } else {
-          hwStatus.textContent = "🔴 Scanner Disconnected";
-          hwStatus.style.color = "var(--muted)";
-          hwBtn.style.display = "none";
-          hwBtn.disabled = true;
-        }
-      }, 2000);
-
-      hwBtn.addEventListener("click", async () => {
-        try {
-          hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
-          const capture = await captureFingerprint();
-          if (!capture.success) throw new Error(capture.error || "Capture failed");
-
-          hwBtn.innerHTML = "Identifying...";
-          const allPrints = db.list("fingerprints") || [];
-          if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
-
-          const fmds = allPrints.map(f => f.template);
-          const match = await identifyFingerprint(capture.template, fmds);
-
-          if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
-
-          const matchedRecord = allPrints[match.matchIndex];
-          const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
-
-          if (!userRec) throw new Error("Fingerprint matched but user account not found.");
-
-          let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
-          if (!pwd) {
-            pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
-            if (!pwd) throw new Error("Password required for first-time hardware login.");
-            localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
-          }
-
-          $("#login-email").value = userRec.email;
-          $("#login-password").value = pwd;
-          $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
-
-        } catch (err) {
-          toast(err.message, "error");
-        } finally {
-          hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
-        }
-      });
-    }
-
-    window.CICKANOPerf = window.CICKANOPerf || {};
-    window.CICKANOPerf.authStart = performance.now();
-    const logoutBtn = $("#logout-btn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async (e) => { await logout(); showLogin(); });
-    }
-    const themeBtn = $("#theme-btn");
-    if (themeBtn) {
-      themeBtn.addEventListener("click", () => {
-        const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
-        localStorage.setItem("CIC KANO:theme", t); applyTheme();
-      });
-    }
-    const menuBtn = $("#menu-btn");
-    const sidebar = $("#sidebar");
-    const scrim = $("#scrim");
-    if (menuBtn && sidebar && scrim) {
-      menuBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); scrim.classList.toggle("hidden"); });
-      scrim.addEventListener("click", () => { sidebar.classList.remove("open"); scrim.classList.add("hidden"); });
-    }
-
-    onAuthChange((user) => { if (!user) showLogin(); });
-
-    // If no cached session, show login screen
-    if (!fastUser) showLogin();
-  }
-
-  boot();
-
-  // Register service worker for offline support
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js")
-        .then((reg) => {
-          console.log("[SW] Registered, scope:", reg.scope);
-          reg.update();
-        })
-        .catch((err) => console.warn("[SW] Registration failed:", err));
-    });
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
     });
   }
+
+  const hwBtn = $("#hw-login-btn");
+  const hwStatus = $("#hw-scanner-status");
+  if (hwBtn && hwStatus) {
+    setInterval(async () => {
+      const loginView = $("#login-view");
+      if (loginView && loginView.classList.contains("hidden")) return; // Stop polling if outside login screen
+
+      const isAvailable = await fingerprintServiceAvailable();
+      if (isAvailable) {
+        hwStatus.textContent = "🟢 Scanner Connected";
+        hwStatus.style.color = "var(--success)";
+        hwBtn.style.display = "block";
+        hwBtn.disabled = false;
+      } else {
+        hwStatus.textContent = "🔴 Scanner Disconnected";
+        hwStatus.style.color = "var(--muted)";
+        hwBtn.style.display = "none";
+        hwBtn.disabled = true;
+      }
+    }, 2000);
+
+    hwBtn.addEventListener("click", async () => {
+      try {
+        hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
+        const capture = await captureFingerprint();
+        if (!capture.success) throw new Error(capture.error || "Capture failed");
+
+        hwBtn.innerHTML = "Identifying...";
+        const allPrints = db.list("fingerprints") || [];
+        if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
+
+        const fmds = allPrints.map(f => f.template);
+        const match = await identifyFingerprint(capture.template, fmds);
+
+        if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
+
+        const matchedRecord = allPrints[match.matchIndex];
+        const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
+
+        if (!userRec) throw new Error("Fingerprint matched but user account not found.");
+
+        let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
+        if (!pwd) {
+          pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
+          if (!pwd) throw new Error("Password required for first-time hardware login.");
+          localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
+        }
+
+        $("#login-email").value = userRec.email;
+        $("#login-password").value = pwd;
+        $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
+
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
+      }
+    });
+  }
+
+  window.CICKANOPerf = window.CICKANOPerf || {};
+  window.CICKANOPerf.authStart = performance.now();
+  const logoutBtn = $("#logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async (e) => { await logout(); showLogin(); });
+  }
+  const themeBtn = $("#theme-btn");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
+      localStorage.setItem("CIC KANO:theme", t); applyTheme();
+    });
+  }
+  const menuBtn = $("#menu-btn");
+  const sidebar = $("#sidebar");
+  const scrim = $("#scrim");
+  if (menuBtn && sidebar && scrim) {
+    menuBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); scrim.classList.toggle("hidden"); });
+    scrim.addEventListener("click", () => { sidebar.classList.remove("open"); scrim.classList.add("hidden"); });
+  }
+
+  onAuthChange((user) => { if (!user) showLogin(); });
+
+  // If no cached session, show login screen
+  if (!fastUser) showLogin();
+}
+
+boot();
+
+// Register service worker for offline support
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .then((reg) => {
+        console.log("[SW] Registered, scope:", reg.scope);
+        reg.update();
+      })
+      .catch((err) => console.warn("[SW] Registration failed:", err));
+  });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
