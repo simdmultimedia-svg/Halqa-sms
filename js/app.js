@@ -414,10 +414,21 @@ function showApp(user, { forceLanding = false } = {}) {
     showLogin();
     return;
   }
-  $("#login-view").classList.add("hidden");
-  $("#app-view").classList.remove("hidden");
+
+  // Hide landing page and login view, show app
+  const landingPage = $("#landing-page");
+  const loginView = $("#login-view");
+  const appView = $("#app-view");
+  const navbar = document.querySelector('.navbar');
+
+  if (landingPage) landingPage.style.display = 'none';
+  if (loginView) loginView.classList.add("hidden");
+  if (appView) appView.classList.remove("hidden");
+  if (navbar) navbar.style.display = 'none';
+
   const b = getBranding();
-  if (b.logoBase64) { $("#side-logo").src = b.logoBase64; }
+  const sideLogo = $("#side-logo");
+  if (b.logoBase64 && sideLogo) { sideLogo.src = b.logoBase64; }
   const role = effectiveRole(user);
   console.log("[DEBUG] showApp - effective role:", role);
 
@@ -442,13 +453,29 @@ window.authReady = false;
 function showLogin() {
   if (currentUnsub) { try { currentUnsub(); } catch { } currentUnsub = null; }
   stopListeners();
-  $("#app-view").classList.add("hidden");
-  $("#login-view").classList.remove("hidden");
-  $("#nav").innerHTML = "";
-  $("#content").innerHTML = "";
-  $("#page-title").textContent = "Login";
-  $("#sidebar").classList.remove("open");
-  $("#scrim").classList.add("hidden");
+
+  // Hide landing page and show login view
+  const landingPage = $("#landing-page");
+  const loginView = $("#login-view");
+  const appView = $("#app-view");
+  const navbar = document.querySelector('.navbar');
+
+  if (landingPage) landingPage.style.display = 'none';
+  if (loginView) loginView.classList.remove("hidden");
+  if (appView) appView.classList.add("hidden");
+  if (navbar) navbar.style.display = 'none';
+
+  const nav = $("#nav");
+  const content = $("#content");
+  const pageTitle = $("#page-title");
+  const sidebar = $("#sidebar");
+  const scrim = $("#scrim");
+
+  if (nav) nav.innerHTML = "";
+  if (content) content.innerHTML = "";
+  if (pageTitle) pageTitle.textContent = "Login";
+  if (sidebar) sidebar.classList.remove("open");
+  if (scrim) scrim.classList.add("hidden");
 
   // PRELOAD FIREBASE & LOCK BUTTON
   const btn = $("#login-btn");
@@ -687,186 +714,209 @@ async function boot() {
 
 
   // 8. Login form
-  $("#login-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("[LOGIN START] Commencing authentication...");
-    const totalStart = performance.now();
-    const btn = $("#login-btn");
-    btn.disabled = true; btn.textContent = "Signing in\u2026";
-    const mode = document.querySelector('input[name="mode"]:checked').value;
-    const email = $("#login-email").value.trim().toLowerCase();
-    setMode(mode);
-    try {
-      if (mode === "cloud") {
-        const _tci = performance.now();
-        await initCloud();
-        window.authReady = true;
+  const loginForm = $("#login-form");
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      console.log("[LOGIN START] Commencing authentication...");
+      const totalStart = performance.now();
+      const btn = $("#login-btn");
+      if (btn) {
+        btn.disabled = true; btn.textContent = "Signing in\u2026";
       }
-      const _tauth = performance.now();
-      await login(email, $("#login-password").value);
-      window.CICKANOPerf.authTime = Math.round(performance.now() - _tauth);
-      console.log(`[BOOT STEP] auth: ${window.CICKANOPerf.authTime}ms`);
-
-      const { waitForAuthReady } = await import("./core/adapter.js");
-      // Using statically imported restoreSession and waitForSessionCache
-
-      const roleReady = await waitForAuthReady(10000);
-
-      if (!roleReady) {
-        console.log("[LOGIN FAIL] Auth profile incomplete timeout.");
-        toast("Account profile incomplete. Contact administrator.", "error", 6000);
-        return;
-      }
-
-      console.log("[LOGIN] Waiting for session cache...");
-      await waitForSessionCache();
-
-      const user = await restoreSession();
-      if (!user || !user.role) {
-        console.log("[RESTORE SESSION FAIL] Restored user has no valid role:", user);
-        console.log("[LOGIN FAIL] Restored user has no valid role.");
-        toast("Account profile incomplete. Contact administrator.", "error", 6000);
-        return;
-      }
-
-      console.log("[RESTORE SESSION SUCCESS] Authenticated successfully.");
-
-      const { bootstrapMasterData, bootstrapUserData, startListeners } = await import("./core/adapter.js");
-
-      const _tMaster = performance.now();
-      await bootstrapMasterData();
-      console.log(`[BOOT STEP] master data sync: ${Math.round(performance.now() - _tMaster)}ms`);
-
-      const _tUser = performance.now();
-      await bootstrapUserData();
-      console.log(`[BOOT STEP] user data sync: ${Math.round(performance.now() - _tUser)}ms`);
-
-      await startListeners();
-
-      const onFirstRender = (evt) => {
-        window.CICKANOPerf.dashboardRendered = performance.now();
-        console.log(`[BOOT STEP] dashboard visible (fresh-login path)`);
-      };
-      window.addEventListener("app:route-rendered", onFirstRender, { once: true });
-      showApp(user, { forceLanding: true });
-    } catch (err) {
-      console.log("[LOGIN FAIL] Exception during login sequence:", err.message);
-      toast(err.message || "Login failed", "error", 4500);
-    } finally {
-      btn.disabled = false; btn.textContent = "Sign In";
-    }
-  });
-
-  const bioBtn = $("#bio-login-btn");
-  if (localStorage.getItem("CIC KANO:bio_default")) {
-    bioBtn.style.display = "block";
-  }
-  bioBtn.addEventListener("click", async () => {
-    try {
-      bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
-      const { email, password } = await loginWithBiometric();
-      $("#login-email").value = email;
-      $("#login-password").value = password;
-      $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
-    } catch (err) {
-      toast(err.message, "error");
-    } finally {
-      bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
-    }
-  });
-
-  const hwBtn = $("#hw-login-btn");
-  const hwStatus = $("#hw-scanner-status");
-  if (hwBtn && hwStatus) {
-    setInterval(async () => {
-      const loginView = $("#login-view");
-      if (loginView && loginView.classList.contains("hidden")) return; // Stop polling if outside login screen
-
-      const isAvailable = await fingerprintServiceAvailable();
-      if (isAvailable) {
-        hwStatus.textContent = "🟢 Scanner Connected";
-        hwStatus.style.color = "var(--success)";
-        hwBtn.style.display = "block";
-        hwBtn.disabled = false;
-      } else {
-        hwStatus.textContent = "🔴 Scanner Disconnected";
-        hwStatus.style.color = "var(--muted)";
-        hwBtn.style.display = "none";
-        hwBtn.disabled = true;
-      }
-    }, 2000);
-
-    hwBtn.addEventListener("click", async () => {
+      const mode = document.querySelector('input[name="mode"]:checked')?.value || "cloud";
+      const email = $("#login-email")?.value?.trim().toLowerCase() || "";
+      setMode(mode);
       try {
-        hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
-        const capture = await captureFingerprint();
-        if (!capture.success) throw new Error(capture.error || "Capture failed");
+        if (mode === "cloud") {
+          const _tci = performance.now();
+          await initCloud();
+          window.authReady = true;
+        }
+        const _tauth = performance.now();
+        const loginPassword = $("#login-password")?.value || "";
+        await login(email, loginPassword);
+        window.CICKANOPerf.authTime = Math.round(performance.now() - _tauth);
+        console.log(`[BOOT STEP] auth: ${window.CICKANOPerf.authTime}ms`);
 
-        hwBtn.innerHTML = "Identifying...";
-        const allPrints = db.list("fingerprints") || [];
-        if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
+        const { waitForAuthReady } = await import("./core/adapter.js");
+        // Using statically imported restoreSession and waitForSessionCache
 
-        const fmds = allPrints.map(f => f.template);
-        const match = await identifyFingerprint(capture.template, fmds);
+        const roleReady = await waitForAuthReady(10000);
 
-        if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
-
-        const matchedRecord = allPrints[match.matchIndex];
-        const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
-
-        if (!userRec) throw new Error("Fingerprint matched but user account not found.");
-
-        let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
-        if (!pwd) {
-          pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
-          if (!pwd) throw new Error("Password required for first-time hardware login.");
-          localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
+        if (!roleReady) {
+          console.log("[LOGIN FAIL] Auth profile incomplete timeout.");
+          toast("Account profile incomplete. Contact administrator.", "error", 6000);
+          return;
         }
 
-        $("#login-email").value = userRec.email;
-        $("#login-password").value = pwd;
-        $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
+        console.log("[LOGIN] Waiting for session cache...");
+        await waitForSessionCache();
 
+        const user = await restoreSession();
+        if (!user || !user.role) {
+          console.log("[RESTORE SESSION FAIL] Restored user has no valid role:", user);
+          console.log("[LOGIN FAIL] Restored user has no valid role.");
+          toast("Account profile incomplete. Contact administrator.", "error", 6000);
+          return;
+        }
+
+        console.log("[RESTORE SESSION SUCCESS] Authenticated successfully.");
+
+        const { bootstrapMasterData, bootstrapUserData, startListeners } = await import("./core/adapter.js");
+
+        const _tMaster = performance.now();
+        await bootstrapMasterData();
+        console.log(`[BOOT STEP] master data sync: ${Math.round(performance.now() - _tMaster)}ms`);
+
+        const _tUser = performance.now();
+        await bootstrapUserData();
+        console.log(`[BOOT STEP] user data sync: ${Math.round(performance.now() - _tUser)}ms`);
+
+        await startListeners();
+
+        const onFirstRender = (evt) => {
+          window.CICKANOPerf.dashboardRendered = performance.now();
+          console.log(`[BOOT STEP] dashboard visible (fresh-login path)`);
+        };
+        window.addEventListener("app:route-rendered", onFirstRender, { once: true });
+        showApp(user, { forceLanding: true });
       } catch (err) {
-        toast(err.message, "error");
+        console.log("[LOGIN FAIL] Exception during login sequence:", err.message);
+        toast(err.message || "Login failed", "error", 4500);
       } finally {
-        hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
+        if (btn) {
+          btn.disabled = false; btn.textContent = "Sign In";
+        }
       }
     });
+
+    const bioBtn = $("#bio-login-btn");
+    if (bioBtn) {
+      if (localStorage.getItem("CIC KANO:bio_default")) {
+        bioBtn.style.display = "block";
+      }
+      bioBtn.addEventListener("click", async () => {
+        try {
+          bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
+          const { email, password } = await loginWithBiometric();
+          const loginEmail = $("#login-email");
+          const loginPassword = $("#login-password");
+          const loginForm = $("#login-form");
+          if (loginEmail) loginEmail.value = email;
+          if (loginPassword) loginPassword.value = password;
+          if (loginForm) loginForm.dispatchEvent(new Event("submit", { cancelable: true }));
+        } catch (err) {
+          toast(err.message, "error");
+        } finally {
+          bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
+        }
+      });
+    }
+
+    const hwBtn = $("#hw-login-btn");
+    const hwStatus = $("#hw-scanner-status");
+    if (hwBtn && hwStatus) {
+      setInterval(async () => {
+        const loginView = $("#login-view");
+        if (loginView && loginView.classList.contains("hidden")) return; // Stop polling if outside login screen
+
+        const isAvailable = await fingerprintServiceAvailable();
+        if (isAvailable) {
+          hwStatus.textContent = "🟢 Scanner Connected";
+          hwStatus.style.color = "var(--success)";
+          hwBtn.style.display = "block";
+          hwBtn.disabled = false;
+        } else {
+          hwStatus.textContent = "🔴 Scanner Disconnected";
+          hwStatus.style.color = "var(--muted)";
+          hwBtn.style.display = "none";
+          hwBtn.disabled = true;
+        }
+      }, 2000);
+
+      hwBtn.addEventListener("click", async () => {
+        try {
+          hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
+          const capture = await captureFingerprint();
+          if (!capture.success) throw new Error(capture.error || "Capture failed");
+
+          hwBtn.innerHTML = "Identifying...";
+          const allPrints = db.list("fingerprints") || [];
+          if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
+
+          const fmds = allPrints.map(f => f.template);
+          const match = await identifyFingerprint(capture.template, fmds);
+
+          if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
+
+          const matchedRecord = allPrints[match.matchIndex];
+          const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
+
+          if (!userRec) throw new Error("Fingerprint matched but user account not found.");
+
+          let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
+          if (!pwd) {
+            pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
+            if (!pwd) throw new Error("Password required for first-time hardware login.");
+            localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
+          }
+
+          $("#login-email").value = userRec.email;
+          $("#login-password").value = pwd;
+          $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
+
+        } catch (err) {
+          toast(err.message, "error");
+        } finally {
+          hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
+        }
+      });
+    }
+
+    window.CICKANOPerf = window.CICKANOPerf || {};
+    window.CICKANOPerf.authStart = performance.now();
+    const logoutBtn = $("#logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async (e) => { await logout(); showLogin(); });
+    }
+    const themeBtn = $("#theme-btn");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", () => {
+        const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
+        localStorage.setItem("CIC KANO:theme", t); applyTheme();
+      });
+    }
+    const menuBtn = $("#menu-btn");
+    const sidebar = $("#sidebar");
+    const scrim = $("#scrim");
+    if (menuBtn && sidebar && scrim) {
+      menuBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); scrim.classList.toggle("hidden"); });
+      scrim.addEventListener("click", () => { sidebar.classList.remove("open"); scrim.classList.add("hidden"); });
+    }
+
+    onAuthChange((user) => { if (!user) showLogin(); });
+
+    // If no cached session, show login screen
+    if (!fastUser) showLogin();
   }
 
-  window.CICKANOPerf = window.CICKANOPerf || {};
-  window.CICKANOPerf.authStart = performance.now();
-  $("#logout-btn").addEventListener("click", async (e) => { await logout(); showLogin(); });
-  $("#theme-btn").addEventListener("click", () => {
-    const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
-    localStorage.setItem("CIC KANO:theme", t); applyTheme();
-  });
-  $("#menu-btn").addEventListener("click", () => { $("#sidebar").classList.toggle("open"); $("#scrim").classList.toggle("hidden"); });
-  $("#scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#scrim").classList.add("hidden"); });
+  boot();
 
-  onAuthChange((user) => { if (!user) showLogin(); });
-
-  // If no cached session, show login screen
-  if (!fastUser) showLogin();
-}
-
-boot();
-
-// Register service worker for offline support
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
-      .then((reg) => {
-        console.log("[SW] Registered, scope:", reg.scope);
-        reg.update();
-      })
-      .catch((err) => console.warn("[SW] Registration failed:", err));
-  });
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
+  // Register service worker for offline support
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .then((reg) => {
+          console.log("[SW] Registered, scope:", reg.scope);
+          reg.update();
+        })
+        .catch((err) => console.warn("[SW] Registration failed:", err));
+    });
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }
