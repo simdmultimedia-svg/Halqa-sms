@@ -1,9 +1,9 @@
 # Netlify configuration for HALQA School Management System
-# Static site with SPA routing - no build step required
+# Vite application: publish only the freshly generated production output.
 
 [build]
-  publish = "."
-  command = "echo 'No build required - serving static files'"
+  publish = "dist"
+  command = "npm run build"
 
 [[redirects]]
   from = "/*"
