@@ -706,6 +706,11 @@ function showLogin() {
   }
 }
 
+// Landing-page buttons use inline handlers.  Hand them over to the module
+// implementation once it is loaded so the login form is initialised before a
+// user can submit it.
+window.showLogin = showLogin;
+
 async function boot() {
   const CIC_SCHEMA_VERSION = "2026-06-prod-v1";
   const MIGRATION_DATE = "2026-06-16";

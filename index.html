@@ -759,13 +759,16 @@
         // Landing page interactivity
         function toggleMenu() {
             const navLinks = document.querySelector('.nav-links');
-            navLinks.classList.toggle('active');
+            if (navLinks) navLinks.classList.toggle('active');
         }
 
         function showLogin() {
-            document.getElementById('landing-page').style.display = 'none';
-            document.getElementById('login-view').style.display = 'block';
-            document.querySelector('.navbar').style.display = 'none';
+            const landingPage = document.getElementById('landing-page');
+            const loginView = document.getElementById('login-view');
+            const navbar = document.querySelector('.navbar');
+            if (landingPage) landingPage.style.display = 'none';
+            if (loginView) loginView.style.display = 'block';
+            if (navbar) navbar.style.display = 'none';
         }
 
         function showLanding() {
@@ -802,7 +805,7 @@
                         behavior: 'smooth',
                         block: 'start'
                     });
-                    document.querySelector('.nav-links').classList.remove('active');
+                    document.querySelector('.nav-links')?.classList.remove('active');
                 }
             });
         });
