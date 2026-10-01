@@ -435,12 +435,38 @@ function showApp(user, { forceLanding = false } = {}) {
   const userName = user?.name || "Administrator";
   const userEmail = user?.email || "";
 
-  $("#user-name").textContent = userName || userEmail;
-  $("#user-role").textContent = role || "Role Not Assigned";
-  $("#user-avatar").textContent = (userName || userEmail || "?").trim()[0].toUpperCase();
+  const userNameEl = $("#user-name");
+  const userRoleEl = $("#user-role");
+  const userAvatarEl = $("#user-avatar");
+
+  if (userNameEl) userNameEl.textContent = userName || userEmail;
+  if (userRoleEl) userRoleEl.textContent = role || "Role Not Assigned";
+  if (userAvatarEl) userAvatarEl.textContent = (userName || userEmail || "?").trim()[0].toUpperCase();
+
   console.log("[DEBUG] Building nav with role:", role);
   buildNav(role);
   updateNetStatus();
+
+  // Attach app UI event listeners
+  const logoutBtn = $("#logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async (e) => { await logout(); showLogin(); });
+  }
+  const themeBtn = $("#theme-btn");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
+      localStorage.setItem("CIC KANO:theme", t); applyTheme();
+    });
+  }
+  const menuBtn = $("#menu-btn");
+  const sidebar = $("#sidebar");
+  const scrim = $("#scrim");
+  if (menuBtn && sidebar && scrim) {
+    menuBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); scrim.classList.toggle("hidden"); });
+    scrim.addEventListener("click", () => { sidebar.classList.remove("open"); scrim.classList.add("hidden"); });
+  }
+
   if (forceLanding || location.hash === "") {
     const landing = firstAllowedModule(role);
     console.log("[DEBUG] First allowed module:", landing);
@@ -517,6 +543,165 @@ function showLogin() {
         btn.textContent = "Sign In";
       }
       if (bioBtn) bioBtn.disabled = false;
+    });
+  }
+
+  // Attach login form event listeners
+  const loginForm = $("#login-form");
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      console.log("[LOGIN START] Commencing authentication...");
+      const totalStart = performance.now();
+      const loginBtn = $("#login-btn");
+      if (loginBtn) {
+        loginBtn.disabled = true; loginBtn.textContent = "Signing in\u2026";
+      }
+      const loginMode = document.querySelector('input[name="mode"]:checked')?.value || "cloud";
+      const email = $("#login-email")?.value?.trim().toLowerCase() || "";
+      setMode(loginMode);
+      try {
+        if (loginMode === "cloud") {
+          const _tci = performance.now();
+          await initCloud();
+          window.authReady = true;
+        }
+        const _tauth = performance.now();
+        const loginPassword = $("#login-password")?.value || "";
+        await login(email, loginPassword);
+        window.CICKANOPerf.authTime = Math.round(performance.now() - _tauth);
+        console.log(`[BOOT STEP] auth: ${window.CICKANOPerf.authTime}ms`);
+
+        const { waitForAuthReady } = await import("./core/adapter.js");
+
+        const roleReady = await waitForAuthReady(10000);
+
+        if (!roleReady) {
+          console.log("[LOGIN FAIL] Auth profile incomplete timeout.");
+          toast("Account profile incomplete. Contact administrator.", "error", 6000);
+          return;
+        }
+
+        console.log("[LOGIN] Waiting for session cache...");
+        await waitForSessionCache();
+
+        const user = await restoreSession();
+        if (!user || !user.role) {
+          console.log("[RESTORE SESSION FAIL] Restored user has no valid role:", user);
+          console.log("[LOGIN FAIL] Restored user has no valid role.");
+          toast("Account profile incomplete. Contact administrator.", "error", 6000);
+          return;
+        }
+
+        console.log("[RESTORE SESSION SUCCESS] Authenticated successfully.");
+
+        const { bootstrapMasterData, bootstrapUserData, startListeners } = await import("./core/adapter.js");
+
+        const _tMaster = performance.now();
+        await bootstrapMasterData();
+        console.log(`[BOOT STEP] master data sync: ${Math.round(performance.now() - _tMaster)}ms`);
+
+        const _tUser = performance.now();
+        await bootstrapUserData();
+        console.log(`[BOOT STEP] user data sync: ${Math.round(performance.now() - _tUser)}ms`);
+
+        await startListeners();
+
+        const onFirstRender = (evt) => {
+          window.CICKANOPerf.dashboardRendered = performance.now();
+          console.log(`[BOOT STEP] dashboard visible (fresh-login path)`);
+        };
+        window.addEventListener("app:route-rendered", onFirstRender, { once: true });
+        showApp(user, { forceLanding: true });
+      } catch (err) {
+        console.log("[LOGIN FAIL] Exception during login sequence:", err.message);
+        toast(err.message || "Login failed", "error", 4500);
+      } finally {
+        if (loginBtn) {
+          loginBtn.disabled = false; loginBtn.textContent = "Sign In";
+        }
+      }
+    });
+  }
+
+  if (bioBtn) {
+    if (localStorage.getItem("CIC KANO:bio_default")) {
+      bioBtn.style.display = "block";
+    }
+    bioBtn.addEventListener("click", async () => {
+      try {
+        bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
+        const { email, password } = await loginWithBiometric();
+        const loginEmail = $("#login-email");
+        const loginPassword = $("#login-password");
+        if (loginEmail) loginEmail.value = email;
+        if (loginPassword) loginPassword.value = password;
+        if (loginForm) loginForm.dispatchEvent(new Event("submit", { cancelable: true }));
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
+      }
+    });
+  }
+
+  const hwBtn = $("#hw-login-btn");
+  const hwStatus = $("#hw-scanner-status");
+  if (hwBtn && hwStatus) {
+    setInterval(async () => {
+      const loginView = $("#login-view");
+      if (loginView && loginView.classList.contains("hidden")) return;
+
+      const isAvailable = await fingerprintServiceAvailable();
+      if (isAvailable) {
+        hwStatus.textContent = "🟢 Scanner Connected";
+        hwStatus.style.color = "var(--success)";
+        hwBtn.style.display = "block";
+        hwBtn.disabled = false;
+      } else {
+        hwStatus.textContent = "🔴 Scanner Disconnected";
+        hwStatus.style.color = "var(--muted)";
+        hwBtn.style.display = "none";
+        hwBtn.disabled = true;
+      }
+    }, 2000);
+
+    hwBtn.addEventListener("click", async () => {
+      try {
+        hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
+        const capture = await captureFingerprint();
+        if (!capture.success) throw new Error(capture.error || "Capture failed");
+
+        hwBtn.innerHTML = "Identifying...";
+        const allPrints = db.list("fingerprints") || [];
+        if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
+
+        const fmds = allPrints.map(f => f.template);
+        const match = await identifyFingerprint(capture.template, fmds);
+
+        if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
+
+        const matchedRecord = allPrints[match.matchIndex];
+        const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
+
+        if (!userRec) throw new Error("Fingerprint matched but user account not found.");
+
+        let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
+        if (!pwd) {
+          pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
+          if (!pwd) throw new Error("Password required for first-time hardware login.");
+          localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
+        }
+
+        $("#login-email").value = userRec.email;
+        $("#login-password").value = pwd;
+        $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
+
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
+      }
     });
   }
 }
@@ -713,193 +898,27 @@ async function boot() {
   });
 
 
-  // 8. Login form
-  const loginForm = $("#login-form");
-  if (loginForm) {
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      console.log("[LOGIN START] Commencing authentication...");
-      const totalStart = performance.now();
-      const btn = $("#login-btn");
-      if (btn) {
-        btn.disabled = true; btn.textContent = "Signing in\u2026";
-      }
-      const mode = document.querySelector('input[name="mode"]:checked')?.value || "cloud";
-      const email = $("#login-email")?.value?.trim().toLowerCase() || "";
-      setMode(mode);
-      try {
-        if (mode === "cloud") {
-          const _tci = performance.now();
-          await initCloud();
-          window.authReady = true;
-        }
-        const _tauth = performance.now();
-        const loginPassword = $("#login-password")?.value || "";
-        await login(email, loginPassword);
-        window.CICKANOPerf.authTime = Math.round(performance.now() - _tauth);
-        console.log(`[BOOT STEP] auth: ${window.CICKANOPerf.authTime}ms`);
-
-        const { waitForAuthReady } = await import("./core/adapter.js");
-        // Using statically imported restoreSession and waitForSessionCache
-
-        const roleReady = await waitForAuthReady(10000);
-
-        if (!roleReady) {
-          console.log("[LOGIN FAIL] Auth profile incomplete timeout.");
-          toast("Account profile incomplete. Contact administrator.", "error", 6000);
-          return;
-        }
-
-        console.log("[LOGIN] Waiting for session cache...");
-        await waitForSessionCache();
-
-        const user = await restoreSession();
-        if (!user || !user.role) {
-          console.log("[RESTORE SESSION FAIL] Restored user has no valid role:", user);
-          console.log("[LOGIN FAIL] Restored user has no valid role.");
-          toast("Account profile incomplete. Contact administrator.", "error", 6000);
-          return;
-        }
-
-        console.log("[RESTORE SESSION SUCCESS] Authenticated successfully.");
-
-        const { bootstrapMasterData, bootstrapUserData, startListeners } = await import("./core/adapter.js");
-
-        const _tMaster = performance.now();
-        await bootstrapMasterData();
-        console.log(`[BOOT STEP] master data sync: ${Math.round(performance.now() - _tMaster)}ms`);
-
-        const _tUser = performance.now();
-        await bootstrapUserData();
-        console.log(`[BOOT STEP] user data sync: ${Math.round(performance.now() - _tUser)}ms`);
-
-        await startListeners();
-
-        const onFirstRender = (evt) => {
-          window.CICKANOPerf.dashboardRendered = performance.now();
-          console.log(`[BOOT STEP] dashboard visible (fresh-login path)`);
-        };
-        window.addEventListener("app:route-rendered", onFirstRender, { once: true });
-        showApp(user, { forceLanding: true });
-      } catch (err) {
-        console.log("[LOGIN FAIL] Exception during login sequence:", err.message);
-        toast(err.message || "Login failed", "error", 4500);
-      } finally {
-        if (btn) {
-          btn.disabled = false; btn.textContent = "Sign In";
-        }
-      }
-    });
-  }
-
-  const bioBtn = $("#bio-login-btn");
-  if (bioBtn) {
-    if (localStorage.getItem("CIC KANO:bio_default")) {
-      bioBtn.style.display = "block";
-    }
-    bioBtn.addEventListener("click", async () => {
-      try {
-        bioBtn.disabled = true; bioBtn.innerHTML = "Authenticating...";
-        const { email, password } = await loginWithBiometric();
-        const loginEmail = $("#login-email");
-        const loginPassword = $("#login-password");
-        const loginForm = $("#login-form");
-        if (loginEmail) loginEmail.value = email;
-        if (loginPassword) loginPassword.value = password;
-        if (loginForm) loginForm.dispatchEvent(new Event("submit", { cancelable: true }));
-      } catch (err) {
-        toast(err.message, "error");
-      } finally {
-        bioBtn.disabled = false; bioBtn.innerHTML = "<span style='font-size:18px;'>👤</span> Biometric Login";
-      }
-    });
-  }
-
-  const hwBtn = $("#hw-login-btn");
-  const hwStatus = $("#hw-scanner-status");
-  if (hwBtn && hwStatus) {
-    setInterval(async () => {
-      const loginView = $("#login-view");
-      if (loginView && loginView.classList.contains("hidden")) return; // Stop polling if outside login screen
-
-      const isAvailable = await fingerprintServiceAvailable();
-      if (isAvailable) {
-        hwStatus.textContent = "🟢 Scanner Connected";
-        hwStatus.style.color = "var(--success)";
-        hwBtn.style.display = "block";
-        hwBtn.disabled = false;
-      } else {
-        hwStatus.textContent = "🔴 Scanner Disconnected";
-        hwStatus.style.color = "var(--muted)";
-        hwBtn.style.display = "none";
-        hwBtn.disabled = true;
-      }
-    }, 2000);
-
-    hwBtn.addEventListener("click", async () => {
-      try {
-        hwBtn.disabled = true; hwBtn.innerHTML = "Capturing...";
-        const capture = await captureFingerprint();
-        if (!capture.success) throw new Error(capture.error || "Capture failed");
-
-        hwBtn.innerHTML = "Identifying...";
-        const allPrints = db.list("fingerprints") || [];
-        if (allPrints.length === 0) throw new Error("No fingerprints registered in the database.");
-
-        const fmds = allPrints.map(f => f.template);
-        const match = await identifyFingerprint(capture.template, fmds);
-
-        if (!match.success) throw new Error(match.error || "Unrecognized Fingerprint");
-
-        const matchedRecord = allPrints[match.matchIndex];
-        const userRec = db.find("users", u => u.id === matchedRecord.ownerId || u.uid === matchedRecord.ownerId || u.staffId === matchedRecord.ownerId);
-
-        if (!userRec) throw new Error("Fingerprint matched but user account not found.");
-
-        let pwd = localStorage.getItem("CIC KANO:hw_pwd:" + userRec.email);
-        if (!pwd) {
-          pwd = prompt(`Welcome back, ${userRec.name || userRec.email}! Please enter your password to link your fingerprint:`);
-          if (!pwd) throw new Error("Password required for first-time hardware login.");
-          localStorage.setItem("CIC KANO:hw_pwd:" + userRec.email, pwd);
-        }
-
-        $("#login-email").value = userRec.email;
-        $("#login-password").value = pwd;
-        $("#login-form").dispatchEvent(new Event("submit", { cancelable: true }));
-
-      } catch (err) {
-        toast(err.message, "error");
-      } finally {
-        hwBtn.disabled = false; hwBtn.innerHTML = "<span style='font-size:18px;'>🖐️</span> Hardware Scanner Login";
-      }
-    });
-  }
+  // 8. Login form event listeners will be attached in showLogin()
+  // App UI event listeners will be attached in showApp()
 
   window.CICKANOPerf = window.CICKANOPerf || {};
   window.CICKANOPerf.authStart = performance.now();
-  const logoutBtn = $("#logout-btn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async (e) => { await logout(); showLogin(); });
-  }
-  const themeBtn = $("#theme-btn");
-  if (themeBtn) {
-    themeBtn.addEventListener("click", () => {
-      const t = (localStorage.getItem("CIC KANO:theme") || "light") === "light" ? "dark" : "light";
-      localStorage.setItem("CIC KANO:theme", t); applyTheme();
-    });
-  }
-  const menuBtn = $("#menu-btn");
-  const sidebar = $("#sidebar");
-  const scrim = $("#scrim");
-  if (menuBtn && sidebar && scrim) {
-    menuBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); scrim.classList.toggle("hidden"); });
-    scrim.addEventListener("click", () => { sidebar.classList.remove("open"); scrim.classList.add("hidden"); });
-  }
 
   onAuthChange((user) => { if (!user) showLogin(); });
 
-  // If no cached session, show login screen
-  if (!fastUser) showLogin();
+  // If no cached session, show landing page (not login screen)
+  if (!fastUser) {
+    // Don't show login, keep landing page visible
+    console.log("[BOOT] No cached session, showing landing page");
+  } else {
+    // Has cached session, restore it
+    const user = await restoreSession();
+    if (user) {
+      showApp(user);
+    } else {
+      console.log("[BOOT] Session invalid, showing landing page");
+    }
+  }
 }
 
 boot();
