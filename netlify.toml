@@ -3,7 +3,7 @@
 
 [build]
   publish = "."
-  command = ""
+  command = "echo 'No build required - serving static files'"
 
 [[redirects]]
   from = "/*"
