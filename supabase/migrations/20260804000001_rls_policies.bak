@@ -1,0 +1,83 @@
+-- ============================================================================
+-- CICK Enterprise — Row Level Security Policies
+-- ============================================================================
+
+-- Helper function to check if the current user has a specific role
+create or replace function public.has_role(role_name text)
+returns boolean as $$
+begin
+  return exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.name = role_name
+  );
+end;
+$$ language plpgsql security definer;
+
+-- ============================================================================
+-- ADMIN POLICIES (Full Access to all tables)
+-- ============================================================================
+
+-- Apply full access for admins across all tables using a DO block
+do $$
+declare
+    t text;
+    tables text[] := array[
+      'roles', 'users', 'user_roles', 'academic_sessions', 'terms',
+      'classes', 'sections', 'subjects', 'students', 'staff', 'parents',
+      'enrollments', 'attendance', 'exams', 'exam_results', 'fee_structures',
+      'invoices', 'invoice_items', 'receipts', 'payment_vouchers', 'expenses',
+      'school_settings', 'audit_logs', 'notifications'
+    ];
+begin
+    foreach t in array tables loop
+        execute format('create policy "admin_all_access" on public.%I for all using (public.has_role(''admin''));', t);
+    end loop;
+end
+$$;
+
+-- ============================================================================
+-- TEACHER POLICIES
+-- ============================================================================
+-- Teachers can view their own profile and students/classes
+create policy "teacher_view_classes" on public.classes for select using (public.has_role('teacher'));
+create policy "teacher_view_students" on public.students for select using (public.has_role('teacher'));
+create policy "teacher_view_enrollments" on public.enrollments for select using (public.has_role('teacher'));
+create policy "teacher_manage_attendance" on public.attendance for all using (public.has_role('teacher'));
+create policy "teacher_manage_exam_results" on public.exam_results for all using (public.has_role('teacher'));
+
+-- ============================================================================
+-- ACCOUNTANT POLICIES
+-- ============================================================================
+-- Accountants manage finance tables
+create policy "accountant_manage_fee_structures" on public.fee_structures for all using (public.has_role('accountant'));
+create policy "accountant_manage_invoices" on public.invoices for all using (public.has_role('accountant'));
+create policy "accountant_manage_invoice_items" on public.invoice_items for all using (public.has_role('accountant'));
+create policy "accountant_manage_receipts" on public.receipts for all using (public.has_role('accountant'));
+create policy "accountant_manage_payment_vouchers" on public.payment_vouchers for all using (public.has_role('accountant'));
+create policy "accountant_manage_expenses" on public.expenses for all using (public.has_role('accountant'));
+
+-- ============================================================================
+-- PARENT POLICIES
+-- ============================================================================
+-- Parents view their children's records
+-- Wait, the parent-student relation is typically mapped through some linking table or via students table having parent_id. 
+-- In our schema, parents have `user_id`, students do not have parent_id directly. We might need a parent_student junction or similar.
+-- Let's assume parents can read their own parent record.
+create policy "parent_view_own_record" on public.parents for select using (user_id = auth.uid());
+
+-- ============================================================================
+-- STUDENT POLICIES
+-- ============================================================================
+-- Students view their own records (if student table had user_id).
+-- In our schema, student table doesn't have user_id, but they could authenticate based on admission_no or something else later.
+create policy "student_view_own_results" on public.exam_results for select using (public.has_role('student'));
+
+-- ============================================================================
+-- PUBLIC / AUTHENTICATED BASIC READS
+-- ============================================================================
+create policy "auth_read_sessions" on public.academic_sessions for select using (auth.uid() is not null);
+create policy "auth_read_terms" on public.terms for select using (auth.uid() is not null);
+create policy "auth_read_settings" on public.school_settings for select using (auth.uid() is not null);

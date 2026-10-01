@@ -1,0 +1,46 @@
+{
+  "name": "halqa-sms",
+  "version": "1.0.0",
+  "description": "A complete, offline-first school management platform for **Halqatu Zaid bin Sabit Tahfizul Qur'an waddarasatul Islamiyya Kano**.\r Built with vanilla **HTML5 / CSS3 / ES6 modules** — no build step, no framework — and an optional\r **Firebase** backend (Authentication + Realtime Database + Firestore) for multi-device realtime sync.",
+  "main": "refactor_firebase.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:unit": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simdvibecoding-gif/Halqa.git"
+  },
+  "keywords": [],
+  "author": "simdvibecoding",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/simdvibecoding-gif/Halqa/issues"
+  },
+  "homepage": "https://github.com/simdvibecoding-gif/Halqa#readme",
+  "dependencies": {
+    "core-js": "^3.49.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0",
+    "regenerator-runtime": "^0.14.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@supabase/supabase-js": "^2.112.0",
+    "@vitejs/plugin-legacy": "^8.2.2",
+    "eslint": "^10.8.0",
+    "eslint-plugin-html": "^8.1.4",
+    "firebase": "^12.17.0",
+    "firebase-admin": "^14.2.0",
+    "firebase-tools": "^15.24.0",
+    "playwright": "^1.62.1",
+    "terser": "^5.49.0",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  }
+}

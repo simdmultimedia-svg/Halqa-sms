@@ -1,0 +1,6 @@
+# Netlify redirects for SPA
+# All routes redirect to index.html for client-side routing
+/* /index.html 200
+
+# Fallback for any other routes to landing page
+/* /index.html 200

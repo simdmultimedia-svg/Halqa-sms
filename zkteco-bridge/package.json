@@ -1,0 +1,14 @@
+{
+  "name": "cic-kano-zkteco-bridge",
+  "version": "1.0.0",
+  "description": "Middleware to sync ZKTeco biometric fingerprint scans with Firebase",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "node-zklib": "^2.0.18",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,22 @@
+-- ============================================================================
+-- CICK Enterprise — Row Level Security: Parent Policies (Placeholder)
+-- ============================================================================
+-- Parents can view their own children's records: enrollment, attendance,
+-- exam results, invoices, and receipts.
+-- These are scaffold policies — refine before production deployment.
+-- ============================================================================
+
+-- Example:
+-- create policy "parent_view_own_children" on public.students
+--   for select
+--   using (
+--     exists (
+--       select 1 from public.parents p
+--       join public.user_roles ur on ur.user_id = p.user_id
+--       join public.roles r on r.id = ur.role_id
+--       where p.user_id = auth.uid()
+--         and r.name = 'parent'
+--     )
+--   );
+
+-- TODO: Implement parent policies for student-related tables.

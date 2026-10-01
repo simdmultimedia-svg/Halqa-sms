@@ -1,0 +1,21 @@
+-- ============================================================================
+-- CICK Enterprise — Row Level Security: Teacher Policies (Placeholder)
+-- ============================================================================
+-- Teachers can read their own classes and students, and write exam results
+-- for subjects they are assigned to.
+-- These are scaffold policies — refine before production deployment.
+-- ============================================================================
+
+-- Example:
+-- create policy "teacher_read_own_classes" on public.classes
+--   for select
+--   using (
+--     exists (
+--       select 1 from public.user_roles ur
+--       join public.roles r on r.id = ur.role_id
+--       where ur.user_id = auth.uid()
+--         and r.name = 'teacher'
+--     )
+--   );
+
+-- TODO: Implement teacher policies for relevant tables.

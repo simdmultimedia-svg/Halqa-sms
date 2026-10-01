@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HALQA - Bootstrap Diagnostic Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1a1a1a;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #0066cc;
+            margin-top: 30px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .status.ok {
+            background: #e6f4ea;
+            color: #0d652d;
+            border-left: 4px solid #0d652d;
+        }
+
+        .status.error {
+            background: #fce8e6;
+            color: #740001;
+            border-left: 4px solid #740001;
+        }
+
+        .status.warning {
+            background: #fef7e0;
+            color: #7d6608;
+            border-left: 4px solid #7d6608;
+        }
+
+        .status.info {
+            background: #e8f0fe;
+            color: #1e40af;
+            border-left: 4px solid #1e40af;
+        }
+
+        .test-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0052a3;
+        }
+
+        button.secondary {
+            background: #666;
+        }
+
+        button.secondary:hover {
+            background: #555;
+        }
+
+        .log-output {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+
+        .log-output pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #0066cc;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 HALQA Bootstrap Diagnostic Test</h1>
+
+        <div id="status"></div>
+
+        <div class="test-section">
+            <h2>Test 1: Current Authentication State</h2>
+            <button onclick="testAuthState()">Run Auth Test</button>
+            <div id="test1-output" class="log-output" style="display:none;">
+                <pre id="test1-log"></pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Check Firestore Records</h2>
+            <button onclick="testFirestoreCheck()">Check Records</button>
+            <div id="test2-output" class="log-output" style="display:none;">
+                <pre id="test2-log"></pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Fresh Installation Detection</h2>
+            <button onclick="testFreshInstall()">Check if Fresh</button>
+            <div id="test3-output" class="log-output" style="display:none;">
+                <pre id="test3-log"></pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Manually Trigger Bootstrap</h2>
+            <p>⚠️ This will create documents if they don't exist and this is a fresh installation.</p>
+            <button onclick="testManualBootstrap()" class="secondary">Trigger Bootstrap</button>
+            <div id="test4-output" class="log-output" style="display:none;">
+                <pre id="test4-log"></pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 5: Role Audit After Bootstrap</h2>
+            <button onclick="testRoleAudit()">Check Role Audit</button>
+            <div id="test5-output" class="log-output" style="display:none;">
+                <pre id="test5-log"></pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 6: Clear Debug Logs</h2>
+            <button onclick="clearLogs()" class="secondary">Clear All Logs</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { state } from './js/core/firebase.js';
+        import { isFreshInstallation, bootstrapFirstUserIfFresh } from './js/core/firebase.js';
+        import { db } from './js/core/db.js';
+
+        window.testAuthState = async function () {
+            const log = document.getElementById('test1-log');
+            const output = document.getElementById('test1-output');
+            output.style.display = 'block';
+            log.textContent = '';
+
+            log.textContent += '=== AUTHENTICATION STATE ===\n\n';
+
+            if (!state.auth) {
+                log.textContent += '❌ Firebase Auth not initialized\n';
+                return;
+            }
+
+            const user = state.auth.currentUser;
+            if (!user) {
+                log.textContent += '❌ No user currently signed in\n';
+                return;
+            }
+
+            log.textContent += `✓ User UID: ${user.uid}\n`;
+            log.textContent += `✓ Email: ${user.email}\n`;
+            log.textContent += `✓ Email Verified: ${user.emailVerified}\n`;
+            log.textContent += `✓ Auth Ready: ${state.authReady}\n`;
+            log.textContent += `✓ Cloud Status: ${state.cloudStatus}\n`;
+            log.textContent += `✓ Mode: ${state.mode}\n`;
+            log.textContent += `\nLocalStorage Session:\n`;
+
+            const sess = sessionStorage.getItem('CIC KANO:session');
+            if (sess) {
+                try {
+                    const data = JSON.parse(sess);
+                    log.textContent += JSON.stringify(data, null, 2) + '\n';
+                } catch (e) {
+                    log.textContent += '(Could not parse session)\n';
+                }
+            } else {
+                log.textContent += '(No session stored)\n';
+            }
+        };
+
+        window.testFirestoreCheck = async function () {
+            const log = document.getElementById('test2-log');
+            const output = document.getElementById('test2-output');
+            output.style.display = 'block';
+            log.textContent = '';
+
+            log.textContent += '=== FIRESTORE RECORDS CHECK ===\n\n';
+
+            if (!state.auth || !state.auth.currentUser) {
+                log.textContent += '❌ No user signed in\n';
+                return;
+            }
+
+            const uid = state.auth.currentUser.uid;
+            log.textContent += `Checking records for UID: ${uid}\n\n`;
+
+            try {
+                const { doc, getDoc } = state.sdk.firestore;
+
+                // Check users/{uid}
+                log.textContent += 'Checking users/' + uid + '...\n';
+                const userRef = doc(state.fs, 'users', uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    log.textContent += '✓ Document EXISTS\n';
+                    log.textContent += JSON.stringify(userSnap.data(), null, 2) + '\n\n';
+                } else {
+                    log.textContent += '❌ Document MISSING\n\n';
+                }
+
+                // Check userRoles/{uid}
+                log.textContent += 'Checking userRoles/' + uid + '...\n';
+                const roleRef = doc(state.fs, 'userRoles', uid);
+                const roleSnap = await getDoc(roleRef);
+                if (roleSnap.exists()) {
+                    log.textContent += '✓ Document EXISTS\n';
+                    log.textContent += JSON.stringify(roleSnap.data(), null, 2) + '\n\n';
+                } else {
+                    log.textContent += '❌ Document MISSING\n\n';
+                }
+
+                // Check local cache
+                log.textContent += '--- Local Cache ---\n';
+                const localUser = db.get('users', uid);
+                const localRole = db.get('userRoles', uid);
+                log.textContent += 'Local users/' + uid + ': ' + (localUser ? 'CACHED' : 'NONE') + '\n';
+                log.textContent += 'Local userRoles/' + uid + ': ' + (localRole ? 'CACHED' : 'NONE') + '\n';
+
+            } catch (e) {
+                log.textContent += '❌ Error: ' + e.message + '\n';
+                log.textContent += e.stack + '\n';
+            }
+        };
+
+        window.testFreshInstall = async function () {
+            const log = document.getElementById('test3-log');
+            const output = document.getElementById('test3-output');
+            output.style.display = 'block';
+            log.textContent = '';
+
+            log.textContent += '=== FRESH INSTALLATION CHECK ===\n\n';
+
+            if (!state.sdk.firestore) {
+                log.textContent += '❌ Firestore SDK not loaded\n';
+                return;
+            }
+
+            try {
+                log.textContent += 'Checking for admins in userRoles...\n\n';
+
+                const { collection, query, where, getDocs } = state.sdk.firestore;
+                const adminQuery = query(
+                    collection(state.fs, 'userRoles'),
+                    where('role', 'in', ['Super Admin', 'Admin'])
+                );
+                const adminSnap = await getDocs(adminQuery);
+
+                log.textContent += `Admin records found: ${adminSnap.size}\n\n`;
+
+                if (adminSnap.size === 0) {
+                    log.textContent += '✓ FRESH INSTALLATION DETECTED\n';
+                    log.textContent += 'Bootstrap would be triggered\n';
+                } else {
+                    log.textContent += '❌ NOT FRESH - Admins already exist:\n\n';
+                    adminSnap.docs.forEach((doc, i) => {
+                        log.textContent += `Admin ${i + 1}:\n`;
+                        log.textContent += JSON.stringify(doc.data(), null, 2) + '\n\n';
+                    });
+                }
+            } catch (e) {
+                log.textContent += '❌ Error: ' + e.message + '\n';
+                log.textContent += e.stack + '\n';
+            }
+        };
+
+        window.testManualBootstrap = async function () {
+            const log = document.getElementById('test4-log');
+            const output = document.getElementById('test4-output');
+            output.style.display = 'block';
+            log.textContent = '';
+
+            log.textContent += '=== MANUAL BOOTSTRAP TEST ===\n\n';
+
+            if (!state.auth || !state.auth.currentUser) {
+                log.textContent += '❌ No user signed in\n';
+                return;
+            }
+
+            const user = state.auth.currentUser;
+            log.textContent += `Attempting bootstrap for: ${user.email}\n\n`;
+
+            try {
+                log.textContent += 'Running bootstrapFirstUserIfFresh()...\n';
+                const result = await bootstrapFirstUserIfFresh(user);
+
+                log.textContent += `Result: ${result ? 'SUCCESS' : 'NOT TRIGGERED'}\n\n`;
+
+                if (result) {
+                    log.textContent += '✓ Bootstrap completed\n';
+                    log.textContent += 'Waiting 2 seconds for Firestore to sync...\n';
+
+                    await new Promise(r => setTimeout(r, 2000));
+
+                    log.textContent += 'Running Firestore check...\n\n';
+                    await window.testFirestoreCheck();
+                } else {
+                    log.textContent += '❌ Bootstrap not triggered (not fresh install or already has profiles)\n';
+                }
+            } catch (e) {
+                log.textContent += '❌ Error: ' + e.message + '\n';
+                log.textContent += e.stack + '\n';
+            }
+        };
+
+        window.testRoleAudit = async function () {
+            const log = document.getElementById('test5-log');
+            const output = document.getElementById('test5-output');
+            output.style.display = 'block';
+            log.textContent = '';
+
+            log.textContent += '=== ROLE AUDIT ===\n\n';
+
+            if (!state.auth || !state.auth.currentUser) {
+                log.textContent += '❌ No user signed in\n';
+                return;
+            }
+
+            const uid = state.auth.currentUser.uid;
+            const userRec = db.get('users', uid);
+            const roleRec = db.get('userRoles', uid);
+
+            log.textContent += `Current User: ${state.auth.currentUser.email}\n`;
+            log.textContent += `Auth Ready: ${state.authReady}\n`;
+            log.textContent += `Cloud Status: ${state.cloudStatus}\n\n`;
+
+            log.textContent += 'User Record:\n';
+            log.textContent += userRec ? JSON.stringify(userRec, null, 2) : '(none)\n';
+            log.textContent += '\n';
+
+            log.textContent += 'Role Record:\n';
+            log.textContent += roleRec ? JSON.stringify(roleRec, null, 2) : '(none)\n';
+            log.textContent += '\n';
+
+            const role = roleRec ? roleRec.role : 'UNKNOWN';
+            log.textContent += `Resolved Role: ${role}\n`;
+
+            if (role === 'UNKNOWN') {
+                log.textContent += '\n⚠️ No role found - bootstrap may not have completed\n';
+            } else {
+                log.textContent += '\n✓ Role successfully assigned\n';
+            }
+        };
+
+        window.clearLogs = function () {
+            document.querySelectorAll('.log-output').forEach(el => {
+                el.style.display = 'none';
+                el.querySelector('pre').textContent = '';
+            });
+        };
+    </script>
+</body>
+
+</html>

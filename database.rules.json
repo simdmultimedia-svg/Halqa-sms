@@ -1,0 +1,70 @@
+{
+    "rules":  {
+                  ".read":  false,
+                  ".write":  false,
+                  "users":  {
+                                "$uid":  {
+                                             ".read":  "auth != null \u0026\u0026 (auth.uid === $uid || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Principal\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Manager\u0027)",
+                                             ".write":  "auth != null \u0026\u0026 (auth.uid === $uid || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)"
+                                         }
+                            },
+                  "userRoles":  {
+                                    "$uid":  {
+                                                 ".read":  "auth != null",
+                                                 ".write":  "auth != null \u0026\u0026 (auth.uid === $uid || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)"
+                                             }
+                                },
+                  "attendance":  {
+                                     ".read":  "auth != null",
+                                     ".write":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Teacher\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Form Teacher\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Principal\u0027)"
+                                 },
+                  "biometricAttendance":  {
+                                              ".read":  "auth != null",
+                                              ".write":  "auth != null"
+                                          },
+                  "activeSessions":  {
+                                         ".read":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)",
+                                         "$uid":  {
+                                                      ".read":  "auth != null \u0026\u0026 auth.uid === $uid",
+                                                      ".write":  "auth != null \u0026\u0026 auth.uid === $uid"
+                                                  }
+                                     },
+                  "onlineStatus":  {
+                                       ".read":  "auth != null",
+                                       "$uid":  {
+                                                    ".write":  "auth != null \u0026\u0026 auth.uid === $uid"
+                                                }
+                                   },
+                  "realtimeNotifications":  {
+                                                ".read":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)",
+                                                "$uid":  {
+                                                             ".read":  "auth != null \u0026\u0026 auth.uid === $uid",
+                                                             ".write":  "auth != null \u0026\u0026 (auth.uid === $uid || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)"
+                                                         }
+                                            },
+                  "counters":  {
+                                   ".read":  "auth != null",
+                                   ".write":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Accountant\u0027)"
+                               },
+                  "restorePoints":  {
+                                        ".read":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027)",
+                                        ".write":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027)"
+                                    },
+                  "liveCBT":  {
+                                  ".read":  "auth != null",
+                                  ".write":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Teacher\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027)"
+                              },
+                  "systemTelemetry":  {
+                                          ".read":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027)",
+                                          ".write":  "auth != null"
+                                      },
+                  "staffLoginMap":  {
+                                        ".read":  "auth != null",
+                                        ".write":  "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)"
+                                    },
+                  "settings": {
+                                      ".read": "auth != null",
+                                      ".write": "auth != null \u0026\u0026 (root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Super Admin\u0027 || root.child(\u0027userRoles\u0027).child(auth.uid).child(\u0027role\u0027).val() === \u0027Admin\u0027)"
+                                  }
+              }
+}

@@ -1,0 +1,17 @@
+# Netlify configuration for HALQA School Management System
+# Static site with SPA routing
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), camera=(), microphone=()"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app https://*.firebaseapp.com https://*.supabase.co wss://*.supabase.co https://www.gstatic.com https://*.gstatic.com wss://*.firebaseio.com wss://*.firebasedatabase.app; img-src 'self' data: blob: https://api.qrserver.com https://*.googleapis.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' data: https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://*.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.firebasedatabase.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; manifest-src 'self';"

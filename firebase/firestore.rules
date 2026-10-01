@@ -1,0 +1,275 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // HELPER FUNCTIONS (RBAC)
+    // ─────────────────────────────────────────────────────────────────────────────
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      // NOTE: We fetch the role from the 'users' collection based on the authenticated UID
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function hasRole(allowedRoles) {
+      return isAuthenticated() && getUserRole() in allowedRoles;
+    }
+    
+    function isSuperAdmin() { return hasRole(['Super Admin']); }
+    function isAdminOrSuper() { return hasRole(['Admin', 'Super Admin']); }
+    function isStaff() { return hasRole(['Admin', 'Super Admin', 'Principal', 'Teacher', 'Exam Officer', 'Accountant']); }
+    function isAccountant() { return hasRole(['Accountant', 'Admin', 'Super Admin']); }
+    function isExamOfficer() { return hasRole(['Exam Officer', 'Admin', 'Super Admin']); }
+    function isTeacher() { return hasRole(['Teacher', 'Admin', 'Super Admin']); }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // USERS & ROLES COLLECTIONS
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+      allow create: if isAdminOrSuper() || (isAuthenticated() && request.auth.uid == userId);
+      // Allow users to update their own profile (e.g. passwords), otherwise admin only
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdminOrSuper());
+      allow delete: if isAdminOrSuper();
+    }
+
+    match /userRoles/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isStaff());
+      allow create: if isAdminOrSuper() || (isAuthenticated() && request.auth.uid == userId);
+      allow update: if isAdminOrSuper();
+      allow delete: if isAdminOrSuper();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STAFF & HR COLLECTIONS
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /staff/{staffId} {
+      // Staff can read all staff (for directory)
+      allow read: if isStaff();
+      allow write: if isAdminOrSuper();
+    }
+    
+    match /staffAttendance/{docId} {
+      allow read: if isStaff();
+      allow write: if isAdminOrSuper() || isTeacher(); 
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STUDENTS COLLECTION
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /students/{studentId} {
+      // Teachers and staff need to read student lists.
+      // A student account should only read its own data (assuming student auth uid matches studentId)
+      allow read: if isStaff() || (isAuthenticated() && request.auth.uid == studentId);
+      allow write: if isAdminOrSuper();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ACADEMICS (RESULTS & ATTENDANCE)
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /results/{resultId} {
+      // Allow staff to read. Allow students to read their own results.
+      allow read: if isStaff() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow write: if isTeacher(); // Teachers, Admins, Super Admins
+    }
+    
+    match /attendance/{docId} {
+      allow read: if isStaff() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow write: if isTeacher();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // EXAMINATIONS (CBT)
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /cbt/{examId} {
+      // Everyone needs to read exams (students need to see what exams they have)
+      allow read: if isAuthenticated();
+      // Only Exam Officers and Teachers can create/edit exams
+      allow write: if isExamOfficer() || isTeacher();
+    }
+    
+    match /examQuestions/{questionId} {
+      allow read: if isAuthenticated();
+      allow write: if isExamOfficer() || isTeacher();
+    }
+    
+    match /cbtAttempts/{attemptId} {
+      allow read: if isStaff() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update, delete: if isStaff();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // FINANCE & BILLING (STRICT)
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /finance/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /invoices/{docId} {
+      // Students/Parents might need to see their own invoices
+      allow read: if isAccountant() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow write: if isAccountant();
+    }
+    match /payments/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /receipts/{docId} {
+      allow read: if isAccountant() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow write: if isAccountant();
+    }
+    match /deletedInvoices/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /deletedReceipts/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /auditLogs/{docId} {
+      allow read: if isAdminOrSuper();
+      allow create: if isAccountant(); // Admin and Accountant can create audit logs
+      allow update, delete: if false; // Immutable audit logs
+    }
+    match /expenses/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /payroll/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /paySlips/{docId} {
+      // Staff can read their own pay slips
+      allow read: if isAccountant() || (isAuthenticated() && resource.data.staffId == request.auth.uid);
+      allow write: if isAccountant();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // COMMUNICATION
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /messages/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /threads/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /announcements/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isStaff();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // CONFIGURATION & LOGS
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /schoolConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrSuper();
+    }
+    
+    match /activity/{docId} {
+      allow read: if isAdminOrSuper();
+      // Allow any authenticated user to create an activity log (if client writes to it)
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Logs are immutable
+    }
+    
+    match /kioskScans/{docId} {
+      // Anyone can create a scan (if kiosk is unauthenticated or uses standard auth), but only admins can read logs
+      allow create: if true; 
+      allow read, update, delete: if isStaff();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PORTED RTDB COLLECTIONS
+    // ─────────────────────────────────────────────────────────────────────────────
+    match /biometricAttendance/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /onlineStatus/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == uid;
+    }
+    match /activeSessions/{uid} {
+      allow read: if isAdminOrSuper() || (isAuthenticated() && request.auth.uid == uid);
+      allow write: if isAuthenticated() && request.auth.uid == uid;
+    }
+    match /realtimeNotifications/{uid} {
+      allow read: if isAdminOrSuper() || (isAuthenticated() && request.auth.uid == uid);
+      allow write: if isAdminOrSuper() || (isAuthenticated() && request.auth.uid == uid);
+    }
+    match /counters/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAccountant();
+    }
+    match /restorePoints/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+    match /liveCBT/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+    match /systemTelemetry/{docId} {
+      allow read: if isAdminOrSuper();
+      allow write: if isAuthenticated();
+    }
+    match /staffLoginMap/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrSuper();
+    }
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+      // Allow write if Admin/Super Admin — also checks userRoles directly for reliability
+      allow write: if isAuthenticated() && (
+        isAdminOrSuper() ||
+        get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.role in ['Admin', 'Super Admin']
+      );
+    }
+    match /families/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrSuper();
+    }
+    match /familyLedger/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrSuper();
+    }
+    match /paymentVouchers/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /testimonials/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isStaff();
+    }
+    match /staffPerformance/{docId} {
+      allow read, write: if isAdminOrSuper();
+    }
+    match /schemeOfWork/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+    match /examTimetable/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+    match /notifications/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrSuper();
+    }
+    match /smsLogs/{docId} {
+      allow read, write: if isAdminOrSuper();
+    }
+    match /assets/{docId} {
+      allow read, write: if isAccountant();
+    }
+    match /inventory/{docId} {
+      allow read, write: if isAccountant();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // DEFAULT DENY ALL (NON-AUTHORIZED ACTIVITIES)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Catch-all to deny any requests that don't specifically match the rules above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

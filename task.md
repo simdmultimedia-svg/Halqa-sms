@@ -1,0 +1,24 @@
+# Task Execution Plan
+
+- `[x]` **1. Sync Engine & Auto Recovery**
+  - `[x]` Add `forcePushAllData()` and `getSyncStats()` to `db.js`.
+  - `[x]` Update `flushQueue()` and `scheduleRetry()` to listen to window network events `online`.
+- `[x]` **2. Sync Diagnostics Center**
+  - `[x]` Update `syncreport.js` to render advanced status (Realtime Database, Queue, Listeners, Auth).
+  - `[x]` Add "Force Push All Data" and "Rebuild Firebase From Local Data" UI elements.
+- `[ ]` **3. Staff Management & Admin Overrides**
+  - `[ ]` Update `staff.js`: Add Soft Delete logic checking `payslips`, `staffAttendance`, and `activities`.
+  - `[ ]` Update `staff.js`: Add "Reset Password", "Disable Login", "Change Role", "Transfer Department".
+  - `[ ]` Add "Activity History" viewer for staff members.
+- `[ ]` **4. App Shell Auto-Logout (Disable Login/Force Logout)**
+  - `[ ]` Update `app.js` to listen for `users/${uid}` and auto-logout if `disabled` or `forceLogout` is true.
+- `[ ]` **5. Role Validation & Access Controls**
+  - `[ ]` Audit `rbac.js` to ensure module boundaries are strict.
+  - `[x]` Fix Exams / CBT so classes list dynamically loads correctly (add `secSel.onchange()`).
+  - `[x]` Fix Scheme of Work to load classes dynamically instead of hardcoded strings.
+- `[ ]` **6. Firebase Audit & Console Cleanup**
+  - `[ ]` Update `firebase.js` to suppress noisy Firebase logs and handle `permission_denied` gracefully.
+- `[ ]` **7. Testing & Delivery**
+  - `[ ]` Test multi-device sync, soft deletes, account disabling.
+  - `[ ]` Rebuild deployment package (ZIP).
+  - `[ ]` Create Walkthrough artifact.

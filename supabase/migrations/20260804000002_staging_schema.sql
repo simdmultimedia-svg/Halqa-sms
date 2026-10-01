@@ -1,0 +1,26 @@
+CREATE SCHEMA IF NOT EXISTS staging;
+
+CREATE TABLE IF NOT EXISTS staging.roles (LIKE public.roles INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.users (LIKE public.users INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.user_roles (LIKE public.user_roles INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.academic_sessions (LIKE public.academic_sessions INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.terms (LIKE public.terms INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.classes (LIKE public.classes INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.sections (LIKE public.sections INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.subjects (LIKE public.subjects INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.students (LIKE public.students INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.staff (LIKE public.staff INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.parents (LIKE public.parents INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.enrollments (LIKE public.enrollments INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.attendance (LIKE public.attendance INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.exams (LIKE public.exams INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.exam_results (LIKE public.exam_results INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.fee_structures (LIKE public.fee_structures INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.invoices (LIKE public.invoices INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.invoice_items (LIKE public.invoice_items INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.receipts (LIKE public.receipts INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.payment_vouchers (LIKE public.payment_vouchers INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.expenses (LIKE public.expenses INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.school_settings (LIKE public.school_settings INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.audit_logs (LIKE public.audit_logs INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS staging.notifications (LIKE public.notifications INCLUDING ALL);

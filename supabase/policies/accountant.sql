@@ -1,0 +1,21 @@
+-- ============================================================================
+-- CICK Enterprise — Row Level Security: Accountant Policies (Placeholder)
+-- ============================================================================
+-- Accountants can manage invoices, receipts, payment vouchers, expenses,
+-- and fee structures.
+-- These are scaffold policies — refine before production deployment.
+-- ============================================================================
+
+-- Example:
+-- create policy "accountant_manage_invoices" on public.invoices
+--   for all
+--   using (
+--     exists (
+--       select 1 from public.user_roles ur
+--       join public.roles r on r.id = ur.role_id
+--       where ur.user_id = auth.uid()
+--         and r.name = 'accountant'
+--     )
+--   );
+
+-- TODO: Implement accountant policies for finance tables.
