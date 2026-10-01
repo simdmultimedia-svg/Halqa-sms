@@ -1,5 +1,9 @@
 # Netlify configuration for HALQA School Management System
-# Static site with SPA routing
+# Static site with SPA routing - no build step required
+
+[build]
+  publish = "."
+  command = ""
 
 [[redirects]]
   from = "/*"
