@@ -4,7 +4,7 @@
 // precached reliably). The app works offline because all data is in localStorage;
 // the only online requirement is Firebase sync (which queues when offline).
 
-const CACHE = "HALQA-v24-production";
+const CACHE = "HALQA-v25-static-files";
 const SHELL = [
   "/",
   "/index.html",
@@ -37,9 +37,17 @@ self.addEventListener("install", (e) => {
 // Activate Event: Cleanup Old Caches
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys().then((keys) => {
+      console.log("[SW] Clearing all caches:", keys);
+      // Delete ALL caches to ensure old bundled files are cleared
+      return Promise.all(keys.map((k) => {
+        console.log("[SW] Deleting cache:", k);
+        return caches.delete(k);
+      }));
+    }).then(() => {
+      console.log("[SW] All caches cleared");
+      return self.clients.claim();
+    })
   );
 });
 
