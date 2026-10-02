@@ -8,12 +8,14 @@ export const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e
 const PAGE_SIZE = 1000;
 const RECONCILE_INTERVAL_MS = 120_000;
 
-export const state = { ready: false, authReady: false, authChecking: false, online: navigator.onLine, mode: localStorage.getItem("HALQA:mode") || "local", cloudStatus: "local", cloudError: "", fsInitialized: false, client: null };
+export const state = { ready: false, authReady: false, authChecking: false, online: navigator.onLine, mode: localStorage.getItem("HALQA:mode") || "local", cloudStatus: "local", cloudError: "", fsInitialized: false, client: null, realtimeStatus: "disconnected" };
 let realtimeChannel = null;
+let realtimeStopping = false;
 let reconcileTimer = null;
 let hydrationPromise = null;
 let networkHandlersInstalled = false;
 let lastCloudPullAt = null;
+let realtimeRetryTimer = null;
 
 function toSnakeCase(obj) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -155,7 +157,7 @@ async function applyNormalizedRow(table, row) {
 
 async function reconcileDevices() {
   if (!state.ready || !state.authReady || !state.online) return;
-  // Note: refreshCloudData and startListeners are now called explicitly during the login bootstrap
+  if (!realtimeChannel) void startListeners();
   await flushQueue();
   startReconcileTimer();
 }
@@ -428,6 +430,8 @@ export async function refreshCloudData() {
 
 export async function startListeners() {
   if (!state.ready || !state.authReady || realtimeChannel) return;
+  realtimeStopping = false;
+  state.realtimeStatus = "connecting";
 
   realtimeChannel = state.client.channel("database_changes")
     .on("postgres_changes", { event: "*", schema: "public", table: "legacy_records" }, (payload) => {
@@ -483,11 +487,31 @@ export async function startListeners() {
 
   realtimeChannel.subscribe((status) => {
     console.log("[REALTIME] Channel status:", status);
-    if (status === "SUBSCRIBED") void refreshCloudData();
+    if (status === "SUBSCRIBED") {
+      state.realtimeStatus = "connected";
+      void refreshCloudData();
+      return;
+    }
+    if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+      if (realtimeStopping) return;
+      state.realtimeStatus = "reconnecting";
+      const failedChannel = realtimeChannel;
+      realtimeChannel = null;
+      if (failedChannel) void state.client.removeChannel(failedChannel);
+      if (!realtimeRetryTimer && state.online && state.authReady) {
+        realtimeRetryTimer = window.setTimeout(() => {
+          realtimeRetryTimer = null;
+          void startListeners();
+        }, 3000);
+      }
+    }
   });
 }
 export async function stopListeners() {
+  realtimeStopping = true;
   if (realtimeChannel) { await state.client.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (realtimeRetryTimer) { window.clearTimeout(realtimeRetryTimer); realtimeRetryTimer = null; }
+  state.realtimeStatus = "disconnected";
   if (reconcileTimer) { window.clearInterval(reconcileTimer); reconcileTimer = null; }
 }
 export function getState() { return state; }

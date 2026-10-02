@@ -62,6 +62,12 @@ let _flushing   = false; // concurrency guard — only one flush runs at a time
 let _flushAgain = false; // set when new work is queued during an active flush
 let _retryTimer = null;  // scheduled auto-retry timer handle
 
+// Supabase mode uses the HALQA namespace, while older Firebase builds used
+// CIC KANO. Read both so local-first writes reliably enter the cloud queue.
+function isCloudSyncEnabled() {
+  return (localStorage.getItem("HALQA:mode") || localStorage.getItem(PREFIX + "mode") || "local") === "cloud";
+}
+
 function readLocal(key, fallback = "") {
   const legacyKey = LEGACY_PREFIX + key.slice(PREFIX.length);
   const current = localStorage.getItem(key);
@@ -201,7 +207,7 @@ function getDeviceId() {
 // returns true). On failure (false or throw), op stays for the next retry.
 export async function flushQueue() {
   if (_flushing) { _flushAgain = true; return; }
-  if ((localStorage.getItem(PREFIX + "mode") || "local") !== "cloud") {
+  if (!isCloudSyncEnabled()) {
     emitQueueStatus();
     return;
   }
@@ -386,11 +392,17 @@ export const db = {
       }
     }
 
-    if (!record.createdAt) record.createdAt = Date.now();
-    record.updatedAt = Date.now();
+    if (origin === "local") {
+      if (!record.createdAt) record.createdAt = Date.now();
+      record.updatedAt = Date.now();
+    } else if (!record.updatedAt && record.updated_at) {
+      // Preserve the server version when a Realtime event is applied. Using
+      // the receiving device's clock here can incorrectly hide later updates
+      // from another device.
+      record.updatedAt = new Date(record.updated_at).getTime();
+    }
     store.put(col, record, { origin });
-    const mode = localStorage.getItem("CIC KANO:mode") || "local";
-    if (sync && origin === "local" && mode === "cloud") {
+    if (sync && origin === "local" && isCloudSyncEnabled()) {
       enqueue({ action: "put", col, id: record.id });
     }
     return record;
@@ -398,8 +410,7 @@ export const db = {
 
   remove(col, id, { sync = true } = {}) {
     const rec = store.remove(col, id);
-    const mode = localStorage.getItem("CIC KANO:mode") || "local";
-    if (sync && mode === "cloud") {
+    if (sync && isCloudSyncEnabled()) {
       enqueue({ action: "remove", col, id });
     }
     return rec;
@@ -555,4 +566,3 @@ setInterval(() => {
   console.info(`[QUEUE] Pending ${pending} operation(s); background scheduler flush`);
   flushQueue();
 }, 5000);
-
