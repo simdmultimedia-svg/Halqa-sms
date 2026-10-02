@@ -531,8 +531,8 @@ function showLogin(portalType = "staff") {
   // PRELOAD FIREBASE & LOCK BUTTON
   const btn = $("#login-btn");
   const bioBtn = $("#bio-login-btn");
-  const modeNode = document.querySelector('input[name="mode"]:checked');
-  const mode = modeNode ? modeNode.value : "cloud";
+  // HALQA runs against the online Supabase service; login has no local-mode toggle.
+  const mode = "cloud";
 
   if (mode === "cloud" && !window.authReady) {
     if (btn) {
@@ -583,7 +583,7 @@ function showLogin(portalType = "staff") {
       if (loginBtn) {
         loginBtn.disabled = true; loginBtn.textContent = "Signing in\u2026";
       }
-      const loginMode = document.querySelector('input[name="mode"]:checked')?.value || "cloud";
+      const loginMode = "cloud";
       const email = $("#login-email")?.value?.trim().toLowerCase() || "";
       setMode(loginMode);
       try {
