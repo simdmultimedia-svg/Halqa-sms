@@ -168,8 +168,26 @@
         .hero-content {
             position: relative;
             z-index: 1;
-            max-width: 900px;
+            max-width: 1180px;
             margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+            align-items: center;
+            gap: 2rem;
+            text-align: left;
+        }
+
+        .hero-copy {
+            max-width: 650px;
+        }
+
+        .hero-illustration {
+            width: 100%;
+            max-height: 530px;
+            object-fit: contain;
+            object-position: right center;
+            align-self: end;
+            filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.25));
         }
 
         .hero h1 {
@@ -189,7 +207,7 @@
         .hero-buttons {
             display: flex;
             gap: 1rem;
-            justify-content: center;
+            justify-content: flex-start;
             animation: fadeInUp 1s ease 0.4s backwards;
         }
 
@@ -468,12 +486,25 @@
                 font-size: 2.5rem;
             }
 
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-copy { max-width: 100%; }
+
+            .hero-illustration {
+                max-height: 360px;
+                order: 2;
+            }
+
             .hero p {
                 font-size: 1rem;
             }
 
             .hero-buttons {
                 flex-direction: column;
+                align-items: center;
             }
 
             #landing-page .section-title {
@@ -545,14 +576,17 @@
         <!-- Hero Section -->
         <section class="hero" id="home">
             <div class="hero-content">
-                <h1 id="landing-hero-title">Leading Islamic Education in Northern Nigeria</h1>
-                <p id="landing-hero-text">Providing excellence in Qur'anic memorization, Islamic studies, and comprehensive education under the
-                    guidance of experienced scholars.</p>
-                <div class="hero-buttons">
-                    <button class="hero-btn hero-btn-primary" onclick="showLogin('student')">Student Portal</button>
-                    <button class="hero-btn hero-btn-secondary" onclick="showLogin('staff')">Staff Login</button>
-                    <a href="#about" class="hero-btn hero-btn-secondary">Learn More</a>
+                <div class="hero-copy">
+                    <h1 id="landing-hero-title">Leading Islamic Education in Northern Nigeria</h1>
+                    <p id="landing-hero-text">Providing excellence in Qur'anic memorization, Islamic studies, and comprehensive education under the
+                        guidance of experienced scholars.</p>
+                    <div class="hero-buttons">
+                        <button class="hero-btn hero-btn-primary" onclick="showLogin('student')">Student Portal</button>
+                        <button class="hero-btn hero-btn-secondary" onclick="showLogin('staff')">Staff Login</button>
+                        <a href="#about" class="hero-btn hero-btn-secondary">Learn More</a>
+                    </div>
                 </div>
+                <img class="hero-illustration" src="/assets/hero-online-learning.png" alt="Student attending an online Qur'an lesson">
             </div>
         </section>
 
