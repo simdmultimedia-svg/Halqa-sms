@@ -44,7 +44,9 @@ button { font-family: inherit; }
   box-shadow: var(--shadow); padding: 30px 28px; border: 1px solid var(--border); }
 .login-card img.logo { width: 92px; display: block; margin: 0 auto 8px; }
 .login-card h1 { text-align: center; font-size: 17px; margin: 4px 0 2px; color: var(--brand); }
+.login-card .login-heading { text-align: center; font-size: 20px; margin: 12px 0 4px; color: var(--text); }
 .login-card .sub { text-align: center; color: var(--muted); font-size: 12px; margin-bottom: 18px; font-style: italic; }
+.login-card .login-portal-note { text-align: center; color: var(--muted); font-size: 13px; line-height: 1.45; margin: 4px 0 16px; }
 .field { margin-bottom: 14px; }
 .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
 .field input, .field select, .field textarea {

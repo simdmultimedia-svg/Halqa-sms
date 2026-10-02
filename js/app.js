@@ -482,7 +482,7 @@ function showApp(user, { forceLanding = false } = {}) {
 
 window.authReady = false;
 
-function showLogin() {
+function showLogin(portalType = "staff") {
   if (currentUnsub) { try { currentUnsub(); } catch { } currentUnsub = null; }
   stopListeners();
 
@@ -496,6 +496,7 @@ function showLogin() {
   if (loginView) {
     loginView.classList.remove("hidden");
     loginView.style.display = "grid";
+    loginView.dataset.portalType = portalType;
   }
   if (appView) {
     appView.classList.add("hidden");
@@ -512,6 +513,18 @@ function showLogin() {
   if (nav) nav.innerHTML = "";
   if (content) content.innerHTML = "";
   if (pageTitle) pageTitle.textContent = "Login";
+
+  const heading = $("#login-heading");
+  const portalNote = $("#login-portal-note");
+  const loginEmail = $("#login-email");
+  if (portalType === "student") {
+    if (heading) heading.textContent = "Student Portal Login";
+    if (portalNote) portalNote.textContent = "Students: sign in with the email and temporary password issued by the school.";
+    if (loginEmail && loginEmail.value === "admin@halqa.local") loginEmail.value = "";
+  } else {
+    if (heading) heading.textContent = "Staff Portal Login";
+    if (portalNote) portalNote.textContent = "Staff and administrators: sign in with your school account.";
+  }
   if (sidebar) sidebar.classList.remove("open");
   if (scrim) scrim.classList.add("hidden");
 

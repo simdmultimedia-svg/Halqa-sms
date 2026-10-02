@@ -536,7 +536,8 @@
                     <li><a href="#programmes">Programmes</a></li>
                     <li><a href="#news">News</a></li>
                     <li><a href="#contact">Contact</a></li>
-                    <li><button class="cta-button" onclick="showLogin()">Login to Portal</button></li>
+                    <li><button class="cta-button" onclick="showLogin('staff')">Staff Login</button></li>
+                    <li><button class="cta-button student-login-button" onclick="showLogin('student')">Student Login</button></li>
                 </ul>
             </div>
         </nav>
@@ -548,7 +549,8 @@
                 <p>Providing excellence in Qur'anic memorization, Islamic studies, and comprehensive education under the
                     guidance of experienced scholars.</p>
                 <div class="hero-buttons">
-                    <button class="hero-btn hero-btn-primary" onclick="showLogin()">Access Portal</button>
+                    <button class="hero-btn hero-btn-primary" onclick="showLogin('student')">Student Portal</button>
+                    <button class="hero-btn hero-btn-secondary" onclick="showLogin('staff')">Staff Login</button>
                     <a href="#about" class="hero-btn hero-btn-secondary">Learn More</a>
                 </div>
             </div>
@@ -679,7 +681,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Quick Links</h4>
-                    <a href="#" onclick="showLogin()">Student Portal</a>
+                    <a href="#" onclick="showLogin('student'); return false;">Student Portal</a>
                     <a href="#about">About Us</a>
                     <a href="#programmes">Programmes</a>
                     <a href="#news">News & Events</a>
@@ -702,9 +704,11 @@
         <form id="login-form" class="login-card">
             <img class="logo" src="./assets/logo.png" alt="HALQA">
             <h1>HALQA</h1>
+            <h2 id="login-heading" class="login-heading">Portal Sign In</h2>
             <div class="sub" dir="rtl" lang="ar">حلقة زيد بن ثابت لتحفيظ القرآن والدراسات الإسلامية كانو</div>
             <div class="sub">Halqatu Zaid bin Sabit Tahfizul Qur'an waddarasatul Islamiyya Kano</div>
             <div class="sub">"The Splendour of a Better Tomorrow"</div>
+            <p id="login-portal-note" class="login-portal-note">Use your school account email and password to sign in.</p>
             <div class="mode-row">
                 <label><input type="radio" name="mode" value="local"><span>Local Mode</span></label>
                 <label><input type="radio" name="mode" value="cloud" checked><span>Cloud (Firebase)</span></label>
@@ -762,13 +766,19 @@
             if (navLinks) navLinks.classList.toggle('active');
         }
 
-        function showLogin() {
+        function showLogin(portalType = 'staff') {
             const landingPage = document.getElementById('landing-page');
             const loginView = document.getElementById('login-view');
             const navbar = document.querySelector('.navbar');
             if (landingPage) landingPage.style.display = 'none';
             if (loginView) loginView.style.display = 'block';
             if (navbar) navbar.style.display = 'none';
+            const heading = document.getElementById('login-heading');
+            const note = document.getElementById('login-portal-note');
+            if (heading) heading.textContent = portalType === 'student' ? 'Student Portal Login' : 'Staff Portal Login';
+            if (note) note.textContent = portalType === 'student'
+                ? 'Students: sign in with the email and temporary password issued by the school.'
+                : 'Staff and administrators: sign in with your school account.';
         }
 
         function showLanding() {
