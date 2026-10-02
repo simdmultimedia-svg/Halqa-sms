@@ -422,8 +422,14 @@ function showApp(user, { forceLanding = false } = {}) {
   const navbar = document.querySelector('.navbar');
 
   if (landingPage) landingPage.style.display = 'none';
-  if (loginView) loginView.classList.add("hidden");
-  if (appView) appView.classList.remove("hidden");
+  if (loginView) {
+    loginView.classList.add("hidden");
+    loginView.style.display = "none";
+  }
+  if (appView) {
+    appView.classList.remove("hidden");
+    appView.style.display = "grid";
+  }
   if (navbar) navbar.style.display = 'none';
 
   const b = getBranding();
@@ -487,8 +493,14 @@ function showLogin() {
   const navbar = document.querySelector('.navbar');
 
   if (landingPage) landingPage.style.display = 'none';
-  if (loginView) loginView.classList.remove("hidden");
-  if (appView) appView.classList.add("hidden");
+  if (loginView) {
+    loginView.classList.remove("hidden");
+    loginView.style.display = "grid";
+  }
+  if (appView) {
+    appView.classList.add("hidden");
+    appView.style.display = "none";
+  }
   if (navbar) navbar.style.display = 'none';
 
   const nav = $("#nav");
@@ -548,7 +560,8 @@ function showLogin() {
 
   // Attach login form event listeners
   const loginForm = $("#login-form");
-  if (loginForm) {
+  if (loginForm && !loginForm.dataset.loginBound) {
+    loginForm.dataset.loginBound = "true";
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       console.log("[LOGIN START] Commencing authentication...");
