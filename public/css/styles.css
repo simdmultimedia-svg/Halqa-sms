@@ -119,6 +119,9 @@ button { font-family: inherit; }
 .muted { color: var(--muted); }
 .section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .section-title h2 { margin: 0; font-size: 20px; }
+.page-head { align-items: flex-start; }
+.page-head h2 { color: var(--text); font-family: inherit; line-height: 1.25; }
+.page-head .muted { max-width: 760px; margin-top: 4px; font-family: inherit; font-size: 13px; line-height: 1.45; }
 
 /* stat cards */
 .stat { display: flex; align-items: center; gap: 14px; }

@@ -14,7 +14,7 @@ export function card(title, bodyNodes = [], actions = null) {
 }
 
 export function pageHead(title, subtitle, actions = []) {
-  return el("div", { class: "section-title" }, [
+  return el("div", { class: "section-title page-head" }, [
     el("div", { style: "flex:1" }, [
       el("h2", { text: title }),
       subtitle ? el("div", { class: "muted", text: subtitle }) : null
