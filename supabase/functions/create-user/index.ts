@@ -36,7 +36,18 @@ serve(async (req) => {
       .select("id, user_roles(roles(name))")
       .eq("auth_id", user.id)
       .single();
-    const callerRoles = caller?.user_roles?.map((link) => link.roles?.name?.toLowerCase()).filter(Boolean) ?? [];
+    // PostgREST returns an object for a singular embedded relationship and an
+    // array for a plural one. Normalize both response shapes before checking
+    // the caller's administrator role.
+    const roleLinks = Array.isArray(caller?.user_roles)
+      ? caller.user_roles
+      : caller?.user_roles
+        ? [caller.user_roles]
+        : [];
+    const callerRoles = roleLinks
+      .flatMap((link) => Array.isArray(link?.roles) ? link.roles : [link?.roles])
+      .map((roleRecord) => roleRecord?.name?.toLowerCase())
+      .filter(Boolean);
     if (callerError || !callerRoles.some((value) => value === "admin" || value === "super admin")) {
       return new Response(JSON.stringify({ error: "Forbidden. Only administrators can create accounts." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
