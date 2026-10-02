@@ -41,7 +41,7 @@ export const MODULES = [
   "family", "fees", "invoices", "bulkinvoice", "receipts",
   "attendance", "exams", "results", "reportcards", "promotion", "staff", "staffactivity", "payslip",
   "salary", "voucher", "expense", "scholarships", "inventory", "reports", "audit", "backup", "settings",
-  "appreset", "healthcheck", "syncreport", "usermanagement", "rolediagnostics", "complaints", "activities", "myprofile", "myresults", "myattendance", "myassignments", "mycbt", "myinvoices", "myreceipts", "myactivities", "lessonplans", "assignments",
+  "appreset", "healthcheck", "syncreport", "usermanagement", "rolediagnostics", "landingeditor", "complaints", "activities", "myprofile", "myresults", "myattendance", "myassignments", "mycbt", "myinvoices", "myreceipts", "myactivities", "lessonplans", "assignments",
   "staffperformance", "staffperformanceroster", "staffroster", "testimonials", "schemeofwork", "examtimetable", "graduations", "recyclebin", "quranlink"
 ];
 

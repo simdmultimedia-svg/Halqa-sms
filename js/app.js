@@ -26,6 +26,7 @@ import { canAccess, firstAllowedModule } from "./core/rbac.js";
 import { configure, current, go, start } from "./core/router.js";
 import { $, $$, el, toast } from "./core/utils.js";
 import { getBranding } from "./core/branding.js";
+import { applyLandingContent } from "./modules/landingeditor.js";
 
 const NAV = [
   { group: "Overview", items: [["dashboard", "Dashboard", "📊"]] },
@@ -83,7 +84,7 @@ const NAV = [
       ["communication", "Notification Center", "📱"], ["whatsapp", "WhatsApp Agent", "🤖"],
       ["activities", "Extracurricular Activities", "⚽"], ["visitors", "Visitor Management", "🚶"], ["audit", "Audit Trail", "🔍"], ["backup", "Backup & Restore", "💾"]]
   },
-  { group: "System", items: [["healthcheck", "Health Check", "🏥"], ["settings", "Settings", "⚙️"], ["recyclebin", "Recycle Bin", "🗑️"], ["usermanagement", "User Management", "👥"], ["biokiosk", "Attendance Kiosk", "⏱️"], ["biodiagnostics", "Biometrics Diagnostics", "🩺"], ["rolediagnostics", "Role Diagnostics", "?"], ["appreset", "App Reset", "🔄"], ["syncreport", "Sync Center", "🔍"]] }
+  { group: "System", items: [["landingeditor", "Landing Page Editor", "🌐"], ["healthcheck", "Health Check", "🏥"], ["settings", "Settings", "⚙️"], ["recyclebin", "Recycle Bin", "🗑️"], ["usermanagement", "User Management", "👥"], ["biokiosk", "Attendance Kiosk", "⏱️"], ["biodiagnostics", "Biometrics Diagnostics", "🩺"], ["rolediagnostics", "Role Diagnostics", "?"], ["appreset", "App Reset", "🔄"], ["syncreport", "Sync Center", "🔍"]] }
 ];
 
 const MODULE_LOADERS = {
@@ -121,6 +122,7 @@ const MODULE_LOADERS = {
   activities: () => import("./modules/activities.js"),
   backup: () => import("./modules/backup.js"),
   settings: () => import("./modules/settings.js"),
+  landingeditor: () => import("./modules/landingeditor.js"),
   biodiagnostics: () => import("./modules/biodiagnostics.js"),
   appreset: () => import("./modules/appreset.js"),
   syncreport: () => import("./modules/syncreport.js"),
@@ -884,6 +886,8 @@ async function boot() {
   // 4. Seed defaults (sync, fast — localStorage only)
   const _t3 = performance.now();
   seedDefaults();
+  applyLandingContent(db.setting("landingPage"));
+  db.on("settings", () => applyLandingContent(db.setting("landingPage")));
   console.log(`[BOOT STEP] seedDefaults: ${Math.round(performance.now() - _t3)}ms`);
 
   // 5. Router
