@@ -29,7 +29,7 @@ function getRole(profile) {
 async function getProfile(client, uid, sessionEmail = "") {
   const { data, error } = await client
     .from("users")
-    .select("id, auth_id, email, full_name, is_active, user_roles(roles(name))")
+    .select("id, auth_id, email, full_name, is_active, student_id, user_roles(roles(name))")
     .eq("auth_id", uid)
     .maybeSingle();
 
@@ -62,7 +62,7 @@ async function getProfile(client, uid, sessionEmail = "") {
       // Fetch the newly created profile
       const { data: newData, error: newError } = await client
         .from("users")
-        .select("id, auth_id, email, full_name, is_active, user_roles(roles(name))")
+        .select("id, auth_id, email, full_name, is_active, student_id, user_roles(roles(name))")
         .eq("auth_id", uid)
         .maybeSingle();
 
@@ -75,6 +75,7 @@ async function getProfile(client, uid, sessionEmail = "") {
         name: newData.full_name || "",
         role: getRole(newData) || newData.role || "Staff",
         staffId: null,
+        studentId: newData.student_id || null,
         active: newData.is_active,
       };
     } catch (err) {
@@ -89,6 +90,7 @@ async function getProfile(client, uid, sessionEmail = "") {
     name: data.full_name || "",
     role: getRole(data) || data.role || "Staff",
     staffId: null,
+    studentId: data.student_id || null,
     active: data.is_active,
   };
 }

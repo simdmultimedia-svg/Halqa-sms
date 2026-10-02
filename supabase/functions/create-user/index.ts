@@ -11,7 +11,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { email, password, name, role } = await req.json();
+    const { email, password, name, role, staffId, studentId } = await req.json();
     if (!email || !password || !name || !role) {
       return new Response(JSON.stringify({ error: "Email, password, name, and role are required." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -65,7 +65,7 @@ serve(async (req) => {
     }
 
     const { data: profile, error: profileError } = await adminClient.from("users")
-      .insert({ auth_id: authData.user.id, email: authData.user.email, full_name: name.trim(), is_active: true })
+      .insert({ auth_id: authData.user.id, email: authData.user.email, full_name: name.trim(), is_active: true, student_id: studentId || null })
       .select("id").single();
     const { error: linkError } = profile
       ? await adminClient.from("user_roles").insert({ user_id: profile.id, role_id: roleRow.id })
@@ -78,6 +78,8 @@ serve(async (req) => {
       email: authData.user.email,
       name: name.trim(),
       role: role.toLowerCase(),
+      staffId: staffId || null,
+      studentId: studentId || null,
       createdAt: Date.now(),
       isActive: true,
       auth_id: authData.user.id
@@ -92,7 +94,9 @@ serve(async (req) => {
     const legacyRolePayload = {
       id: authData.user.id,
       uid: authData.user.id,
-      role: role.toLowerCase()
+      role: role.toLowerCase(),
+      staffId: staffId || null,
+      studentId: studentId || null
     };
     const { error: legacyRoleError } = await adminClient.from("legacy_records").upsert({
       collection: "userRoles",

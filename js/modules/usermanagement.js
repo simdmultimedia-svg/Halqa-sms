@@ -406,6 +406,7 @@ function drawUserList(wrap, ctx) {
     statusFilter.onchange = renderTable;
 
     drawPendingLogins(wrap, ctx, draw);
+    drawPendingStudentLogins(wrap, ctx, draw);
     drawPasswordResetRequests(wrap, ctx, draw);
     const c = card("User Accounts", [filterBar, tableWrap]);
     wrap.appendChild(c);
@@ -415,8 +416,9 @@ function drawUserList(wrap, ctx) {
   draw();
   const offUsers = db.on("users", draw);
   const offStaff = db.on("staff", draw);
+  const offStudents = db.on("students", draw);
   const offReset = db.on("passwordResetRequests", draw);
-  wrap._cleanup = () => { offUsers(); offStaff(); offReset(); };
+  wrap._cleanup = () => { offUsers(); offStaff(); offStudents(); offReset(); };
 }
 
 function proposedStaffEmail(staff) {
@@ -441,6 +443,51 @@ function drawPendingLogins(wrap, ctx, redraw) {
     { label: "Status", render: () => "Pending Login" },
     { label: "", render: (s) => btn("Create Login", { sm: true, variant: "primary", onclick: () => createStaffLoginModal(s, ctx, redraw) }) }
   ], pending, { empty: "No pending staff login accounts." })]));
+}
+
+function drawPendingStudentLogins(wrap, ctx, redraw) {
+  const pending = db.list("students")
+    .filter((s) => s.status !== "graduated" && !db.find("users", (u) => u.studentId === s.id))
+    .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
+  if (!pending.length) return;
+  wrap.appendChild(card("Student Portal Accounts", [
+    el("p", { class: "muted", text: "Create a student login to view only that student's report cards, invoices, receipts, and activity history." }),
+    table([
+      { label: "Student", key: "fullName" },
+      { label: "Admission No.", key: "admissionNo" },
+      { label: "Status", render: () => "No portal login" },
+      { label: "", render: (s) => btn("Create Student Login", { sm: true, variant: "primary", onclick: () => createStudentLoginModal(s, ctx, redraw) }) }
+    ], pending, { empty: "All active students have portal logins." })
+  ]));
+}
+
+function createStudentLoginModal(student, ctx, redraw) {
+  const emailInp = input({ type: "email", placeholder: "student@email.com", value: (student.email || "").toLowerCase() });
+  const pwd = generateTempPassword();
+  const body = el("div", { class: "form-grid" }, [
+    field("Student", el("strong", { text: `${student.fullName} (${student.admissionNo || student.id})` }), { full: true }),
+    field("Email", emailInp),
+    field("Temporary Password", el("div", { class: "um-temp-pwd", text: pwd })),
+    el("p", { class: "muted", style: "font-size:12px", text: "The password is shown once. The student will be asked to change it after their first sign-in." })
+  ]);
+  const m = modal({ title: "Create Student Portal Login", body, footer: [
+    btn("Create Login", { variant: "primary", onclick: async () => {
+      let email = "";
+      try { email = normalizeEmail(emailInp.value); }
+      catch (e) { return toast(e.message, "error"); }
+      if (!cloudAuthReady()) return toast("Student accounts require an online cloud connection.", "error");
+      if (db.find("users", (u) => String(u.email || "").toLowerCase() === email || u.studentId === student.id)) return toast("This email or student already has a portal login.", "error");
+      try {
+        const { uid } = await createUserAccount({ email, password: pwd, name: student.fullName, role: "Student", studentId: student.id, forcePasswordChange: true });
+        await ensureUserMappingRecords({ id: uid, uid, email, name: student.fullName, role: "Student", studentId: student.id, status: "active", forcePasswordChange: true });
+        db.save("students", { ...student, portalLoginStatus: "Active", portalUserId: uid, portalEmail: email });
+        auditAction(ctx.user.uid, "student_portal_created", `Created student portal login for ${student.fullName}`, { targetUid: uid, studentId: student.id });
+        showCredentialsModal({ name: student.fullName, email, password: pwd, role: "Student" });
+        m.close(); redraw();
+      } catch (e) { toast("Student login creation failed: " + e.message, "error", 8000); }
+    }}),
+    btn("Cancel", { onclick: () => m.close() })
+  ]});
 }
 
 function createStaffLoginModal(staff, ctx, redraw) {
