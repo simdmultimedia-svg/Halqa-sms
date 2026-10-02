@@ -732,6 +732,17 @@ function showLogin(portalType = "staff") {
   }
 }
 
+function showLandingPage() {
+  const landingPage = $("#landing-page");
+  const loginView = $("#login-view");
+  const appView = $("#app-view");
+  const navbar = document.querySelector(".navbar");
+  if (landingPage) landingPage.style.display = "block";
+  if (loginView) { loginView.classList.add("hidden"); loginView.style.display = "none"; }
+  if (appView) { appView.classList.add("hidden"); appView.style.display = "none"; }
+  if (navbar) navbar.style.display = "";
+}
+
 // Landing-page buttons use inline handlers.  Hand them over to the module
 // implementation once it is loaded so the login form is initialised before a
 // user can submit it.
@@ -862,18 +873,12 @@ async function boot() {
 
     await startListeners();
 
-    // Show dashboard ONLY if role is confirmed
-    const onFastRender = (evt) => {
-      window.CICKANOPerf.dashboardRendered = performance.now();
-      console.log(`[BOOT STEP] Dashboard Mounted`);
-    };
-    window.addEventListener("app:route-rendered", onFastRender);
-    const _tshow = performance.now();
-    showApp(fastUser, { forceLanding: true });
-    console.log(`[BOOT STEP] showApp: ${Math.round(performance.now() - _tshow)}ms`);
+    // Keep the public site visible on page load. A valid session is retained,
+    // but the management shell must be opened deliberately through the portal.
+    showLandingPage();
   } else {
-    // Fail closed! Show login view.
-    showLogin();
+    // The public landing page is the default for visitors without a session.
+    showLandingPage();
   }
 
   // 4. Seed defaults (sync, fast — localStorage only)
@@ -941,14 +946,6 @@ async function boot() {
   if (!fastUser) {
     // Don't show login, keep landing page visible
     console.log("[BOOT] No cached session, showing landing page");
-  } else {
-    // Has cached session, restore it
-    const user = await restoreSession();
-    if (user) {
-      showApp(user);
-    } else {
-      console.log("[BOOT] Session invalid, showing landing page");
-    }
   }
 }
 
