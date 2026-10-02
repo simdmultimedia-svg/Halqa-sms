@@ -27,6 +27,7 @@ import { configure, current, go, start } from "./core/router.js";
 import { $, $$, el, toast } from "./core/utils.js";
 import { getBranding } from "./core/branding.js";
 import { applyLandingContent } from "./modules/landingeditor.js";
+import { applyOnlineClasses } from "./modules/onlineclasses.js";
 
 const NAV = [
   { group: "Overview", items: [["dashboard", "Dashboard", "📊"]] },
@@ -36,7 +37,7 @@ const NAV = [
       ["myresults", "My Results", "📈"], ["myattendance", "My Attendance", "📅"],
       ["myappointments", "My Appointment Letter", "📄"],
       ["myassignments", "My Assignments", "📝"], ["mycbt", "My CBT", "💻"],
-      ["myinvoices", "My Invoices", "🧾"], ["myreceipts", "My Receipts", "🧾"], ["complaints", "Complaints", "!"]
+      ["onlineclasses", "Online Classes", "🎥"], ["myinvoices", "My Invoices", "🧾"], ["myreceipts", "My Receipts", "🧾"], ["complaints", "Complaints", "!"]
     ]
   },
   {
@@ -123,6 +124,7 @@ const MODULE_LOADERS = {
   backup: () => import("./modules/backup.js"),
   settings: () => import("./modules/settings.js"),
   landingeditor: () => import("./modules/landingeditor.js"),
+  onlineclasses: () => import("./modules/onlineclasses.js"),
   biodiagnostics: () => import("./modules/biodiagnostics.js"),
   appreset: () => import("./modules/appreset.js"),
   syncreport: () => import("./modules/syncreport.js"),
@@ -887,7 +889,8 @@ async function boot() {
   const _t3 = performance.now();
   seedDefaults();
   applyLandingContent(db.setting("landingPage"));
-  db.on("settings", () => applyLandingContent(db.setting("landingPage")));
+  applyOnlineClasses(db.setting("onlineClasses"));
+  db.on("settings", () => { applyLandingContent(db.setting("landingPage")); applyOnlineClasses(db.setting("onlineClasses")); });
   console.log(`[BOOT STEP] seedDefaults: ${Math.round(performance.now() - _t3)}ms`);
 
   // 5. Router

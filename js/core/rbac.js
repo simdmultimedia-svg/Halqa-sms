@@ -41,7 +41,7 @@ export const MODULES = [
   "family", "fees", "invoices", "bulkinvoice", "receipts",
   "attendance", "exams", "results", "reportcards", "promotion", "staff", "staffactivity", "payslip",
   "salary", "voucher", "expense", "scholarships", "inventory", "reports", "audit", "backup", "settings",
-  "appreset", "healthcheck", "syncreport", "usermanagement", "rolediagnostics", "landingeditor", "complaints", "activities", "myprofile", "myresults", "myattendance", "myassignments", "mycbt", "myinvoices", "myreceipts", "myactivities", "lessonplans", "assignments",
+  "appreset", "healthcheck", "syncreport", "usermanagement", "rolediagnostics", "landingeditor", "onlineclasses", "complaints", "activities", "myprofile", "myresults", "myattendance", "myassignments", "mycbt", "myinvoices", "myreceipts", "myactivities", "lessonplans", "assignments",
   "staffperformance", "staffperformanceroster", "staffroster", "testimonials", "schemeofwork", "examtimetable", "graduations", "recyclebin", "quranlink"
 ];
 
@@ -59,7 +59,7 @@ export const DEFAULT_ROLE_ACCESS = {
   "Receptionist": ["dashboard", "admission", "enquiries", "admissionproposals", "students"],
   "Staff": ["myprofile", "myattendance", "payslip", "complaints", "staffroster"],
   "Parent": ["dashboard", "family", "myprofile", "myresults", "myinvoices", "myreceipts", "myactivities", "examtimetable"],
-  "Student": ["dashboard", "myprofile", "myresults", "mycbt", "myinvoices", "myreceipts", "myattendance", "myactivities", "myassignments", "complaints", "examtimetable"]
+  "Student": ["dashboard", "myprofile", "myresults", "mycbt", "onlineclasses", "myinvoices", "myreceipts", "myattendance", "myactivities", "myassignments", "complaints", "examtimetable"]
 };
 
 export function roleAccess(role) {

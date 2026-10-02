@@ -211,6 +211,20 @@
             animation: fadeInUp 1s ease 0.4s backwards;
         }
 
+        .online-courses { max-width: 1200px; margin: 0 auto; padding: 5rem 2rem; background: #fbfaf7; }
+        .online-courses-head { display:flex; justify-content:space-between; gap:2rem; align-items:end; margin-bottom:2.5rem; }
+        .online-courses-kicker { color: var(--accent-gold); font-size:.72rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+        .online-courses h2 { margin:.45rem 0 0; font-family:'Playfair Display',serif; color:var(--primary-blue); font-size:2.45rem; line-height:1.08; }
+        .online-course-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:1.35rem; }
+        .online-course-card { background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 8px 24px rgba(26,54,93,.10); display:flex; flex-direction:column; }
+        .online-course-visual { height:150px; background:linear-gradient(135deg, #183d6b, #b58b21); color:#fff; display:flex; align-items:center; justify-content:center; font-size:3rem; background-size:cover; background-position:center; }
+        .online-course-body { padding:1rem; display:flex; flex-direction:column; flex:1; }
+        .online-course-level { align-self:flex-start; margin-top:-2rem; position:relative; background:var(--accent-gold); color:#1a365d; padding:.22rem .5rem; border-radius:4px; font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.07em; }
+        .online-course-card h3 { color:var(--primary-blue); margin:.8rem 0 .45rem; font-size:1.1rem; }
+        .online-course-card p { color:var(--text-light); font-size:.88rem; line-height:1.5; margin:0; }
+        .online-course-meta { border-top:1px solid #e4e1d9; margin-top:1rem; padding-top:.75rem; color:#9d7619; display:flex; justify-content:space-between; gap:.5rem; font-size:.75rem; }
+        .online-course-cta { margin-top:1rem; color:var(--primary-blue); background:none; border:0; padding:0; font-weight:800; cursor:pointer; text-align:left; }
+
         .hero-btn {
             padding: 1rem 2.5rem;
             border-radius: 5px;
@@ -507,6 +521,10 @@
                 align-items: center;
             }
 
+            .online-courses-head { display:block; }
+            .online-courses h2 { font-size:2rem; }
+            .online-course-grid { grid-template-columns:1fr; }
+
             #landing-page .section-title {
                 font-size: 2rem;
             }
@@ -588,6 +606,17 @@
                 </div>
                 <img class="hero-illustration" src="/assets/hero-online-learning.png" alt="Student attending an online Qur'an lesson">
             </div>
+        </section>
+
+        <section class="online-courses" id="online-classes">
+            <div class="online-courses-head">
+                <div>
+                    <div class="online-courses-kicker">Our Online Classes</div>
+                    <h2 id="online-classes-title">Online Qur'an Courses Designed<br>for Every Level</h2>
+                </div>
+                <button class="hero-btn hero-btn-primary" onclick="showLogin('student')">View All Courses</button>
+            </div>
+            <div id="online-classes-list" class="online-course-grid"></div>
         </section>
 
         <!-- News & Events Section -->
