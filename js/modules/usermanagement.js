@@ -40,7 +40,7 @@ function generateTempPassword() {
 
 /** Format a timestamp to a human-readable string. */
 function fmt(ts) {
-  if (!ts) return "â€”";
+  if (!ts) return "—";
   return fmtDateTime ? fmtDateTime(ts) : new Date(ts).toLocaleString();
 }
 
@@ -211,15 +211,15 @@ function statusBadge(u) {
     return el("span", { class: "um-badge um-badge--deleted", text: "🗑️ Deleted" });
   }
   if (u.status === "suspended") {
-    return el("span", { class: "um-badge um-badge--suspended", text: "â¸ Suspended" });
+    return el("span", { class: "um-badge um-badge--suspended", text: "⏸ Suspended" });
   }
   if (u.loginDisabled) {
-    return el("span", { class: "um-badge um-badge--disabled", text: "â›” Disabled" });
+    return el("span", { class: "um-badge um-badge--disabled", text: "⛔ Disabled" });
   }
   if (u.forcePasswordChange) {
     return el("span", { class: "um-badge um-badge--warn", text: "🔑 Pwd Reset" });
   }
-  return el("span", { class: "um-badge um-badge--active", text: "âœ“ Active" });
+  return el("span", { class: "um-badge um-badge--active", text: "✓ Active" });
 }
 
 function roleBadge(u) {
@@ -231,7 +231,7 @@ function roleBadge(u) {
   };
   return el("span", {
     style: `background:${colors[u.role] || "#546e7a"};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600`,
-    text: u.role || "â€”"
+    text: u.role || "—"
   });
 }
 
@@ -298,7 +298,7 @@ export function render(root, ctx) {
     document.head.appendChild(s);
   }
 
-  root.appendChild(pageHead("User Management", "Secure user lifecycle management â€” no passwords are ever displayed."));
+  root.appendChild(pageHead("User Management", "Secure user lifecycle management — no passwords are ever displayed."));
 
   const wrap = el("div", { class: "um-wrap" });
   root.appendChild(wrap);
@@ -319,7 +319,7 @@ function drawUserList(wrap, ctx) {
     const allUsers = db.list("users").sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
     // â”€â”€ Search & Filter Bar â”€â”€
-    const searchInp = input({ placeholder: "Search by name, email, usernameâ€¦", style: "flex:1;max-width:320px" });
+    const searchInp = input({ placeholder: "Search by name, email, username…", style: "flex:1;max-width:320px" });
     const roleFilter = select(() => [
       { value: "", label: "All Roles" },
       ...ROLES.map((r) => ({ value: r, label: r }))
@@ -376,12 +376,12 @@ function drawUserList(wrap, ctx) {
       }
       tableWrap.appendChild(table([
         { label: "Full Name", render: (u) => el("div", {}, [
-            el("div", { style: "font-weight:600", text: u.name || "â€”" }),
+            el("div", { style: "font-weight:600", text: u.name || "—" }),
             el("div", { class: "muted", style: "font-size:11px", text: u.username ? `@${u.username}` : "" })
           ])
         },
         { label: "Email", key: "email" },
-        { label: "Phone", render: (u) => el("span", { text: u.phone || "â€”" }) },
+        { label: "Phone", render: (u) => el("span", { text: u.phone || "—" }) },
         { label: "Role", render: roleBadge },
         { label: "Status", render: statusBadge },
         { label: "Last Login", render: (u) => {
@@ -393,7 +393,7 @@ function drawUserList(wrap, ctx) {
           }
         },
         { label: "Created", render: (u) => el("div", { style: "font-size:12px" }, [
-            el("div", { text: u.createdAt ? fmt(u.createdAt) : "â€”" }),
+            el("div", { text: u.createdAt ? fmt(u.createdAt) : "—" }),
             u.createdBy ? el("div", { class: "muted", style: "font-size:10px", text: `by ${u.createdBy}` }) : el("span")
           ])
         },
@@ -668,26 +668,26 @@ function actionButtons(u, ctx, isSuperAdmin, redraw) {
   wrap.appendChild(btn("👤 View", { sm: true, variant: "ghost", onclick: () => viewUserModal(u, ctx) }));
 
   // â”€â”€ Edit â”€â”€
-  wrap.appendChild(btn("âœï¸ Edit", { sm: true, variant: "ghost", onclick: () => editUserModal(u, ctx, redraw) }));
+  wrap.appendChild(btn("✏️ Edit", { sm: true, variant: "ghost", onclick: () => editUserModal(u, ctx, redraw) }));
 
   // â”€â”€ Password Reset â”€â”€
   wrap.appendChild(btn("🔑 Reset Pwd", { sm: true, variant: "ghost", onclick: () => resetPasswordModal(u, actorUid, redraw) }));
 
   if (!isSelf) {
     const statusMenu = el("div", { class: "um-dropdown" });
-    const trigger = btn("⚙️ï¸ Actions ▾", { sm: true, variant: "ghost" });
+    const trigger = btn("⚙️ Actions ▾", { sm: true, variant: "ghost" });
     const menu = el("div", { class: "um-dropdown-menu" });
 
     // Enable / Disable
     if (isDisabled && u.status !== "deleted") {
-      menu.appendChild(menuItem("âœ… Enable Account", () => enableAccount(u, actorUid, redraw)));
+      menu.appendChild(menuItem("✅ Enable Account", () => enableAccount(u, actorUid, redraw)));
     } else if (!isSelf && !u.loginDisabled) {
-      menu.appendChild(menuItem("â›” Disable Account", () => disableAccount(u, actorUid, redraw)));
+      menu.appendChild(menuItem("⛔ Disable Account", () => disableAccount(u, actorUid, redraw)));
     }
 
     // Suspend
     if (u.status !== "suspended" && u.status !== "deleted") {
-      menu.appendChild(menuItem("â¸ Suspend Account", () => suspendAccount(u, actorUid, redraw)));
+      menu.appendChild(menuItem("⏸ Suspend Account", () => suspendAccount(u, actorUid, redraw)));
     }
 
     // Change Role
@@ -748,7 +748,7 @@ function viewUserModal(u, ctx) {
 
   const infoRow = (label, value) => el("div", { class: "um-info-row" }, [
     el("span", { class: "um-info-label", text: label }),
-    el("span", { class: "um-info-value", text: value || "â€”" })
+    el("span", { class: "um-info-value", text: value || "—" })
   ]);
 
   const body = el("div", { class: "um-detail" });
@@ -772,9 +772,9 @@ function viewUserModal(u, ctx) {
   body.appendChild(el("div", { class: "um-section-title", style: "margin-top:16px", text: "🔒 Security & Login" }));
   const secGrid = el("div", { class: "um-info-grid" });
   secGrid.appendChild(infoRow("Last Login", lastLogin ? fmt(lastLogin.at) : "Never"));
-  secGrid.appendChild(infoRow("Last Device", lastLogin?.device || "â€”"));
+  secGrid.appendChild(infoRow("Last Device", lastLogin?.device || "—"));
   secGrid.appendChild(infoRow("Failed Attempts (24h)", String(failedCount)));
-  secGrid.appendChild(infoRow("Force Password Change", u.forcePasswordChange ? "YES âš ï¸" : "No"));
+  secGrid.appendChild(infoRow("Force Password Change", u.forcePasswordChange ? "YES ⚠️" : "No"));
   secGrid.appendChild(infoRow("Force Logout Pending", u.forceLogout ? "YES" : "No"));
   body.appendChild(secGrid);
 
@@ -787,7 +787,7 @@ function viewUserModal(u, ctx) {
     loginHistory.forEach((rec) => {
       const isFail = rec.type === "login_failed";
       lh.appendChild(el("div", { class: `um-log-item${isFail ? " um-log-item--fail" : ""}` }, [
-        el("span", { class: "um-log-icon", text: isFail ? "âœ—" : "âœ“" }),
+        el("span", { class: "um-log-icon", text: isFail ? "✗" : "✓" }),
         el("div", { class: "um-log-body" }, [
           el("span", { class: "um-log-time", text: fmt(rec.at) }),
           rec.device ? el("span", { class: "um-log-device", text: rec.device }) : el("span"),
@@ -1290,5 +1290,3 @@ const UM_CSS = `
   .um-filter-bar { flex-direction: column; align-items: stretch; }
 }
 `;
-
-
