@@ -26,14 +26,25 @@ const DEFAULTS = {
 
 function content(value) {
   const saved = value && typeof value === "object" ? value : {};
-  return { ...DEFAULTS, ...saved, programmes: saved.programmes || DEFAULTS.programmes, news: saved.news || DEFAULTS.news };
+  const usableCards = (items, fallback) => Array.isArray(items) && items.some((item) => item?.title || item?.text)
+    ? items
+    : fallback;
+  // Do not let an empty array from an earlier editor session erase the public
+  // programme/news sections. It is common when a setting was first saved
+  // before its card records were created.
+  return {
+    ...DEFAULTS,
+    ...saved,
+    programmes: usableCards(saved.programmes, DEFAULTS.programmes),
+    news: usableCards(saved.news, DEFAULTS.news)
+  };
 }
 
 function setText(id, value) { const node = document.getElementById(id); if (node && value) node.textContent = value; }
 
 function drawCards(id, items) {
   const host = document.getElementById(id);
-  if (!host || !Array.isArray(items)) return;
+  if (!host || !Array.isArray(items) || !items.some((item) => item?.title || item?.text)) return;
   host.innerHTML = "";
   items.filter((item) => item?.title || item?.text).slice(0, 6).forEach((item) => {
     const cardNode = document.createElement("div");

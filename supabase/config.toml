@@ -65,3 +65,9 @@ enabled = false
 enabled = false
 port = 54327
 backend = "postgres"
+
+# Public visitors submit online course enquiries before they have an account.
+# The function performs its own input validation and uses the service role only
+# on the server, so it must not require a signed-in JWT.
+[functions.register-online-class]
+verify_jwt = false
