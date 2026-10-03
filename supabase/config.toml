@@ -71,3 +71,7 @@ backend = "postgres"
 # on the server, so it must not require a signed-in JWT.
 [functions.register-online-class]
 verify_jwt = false
+
+# Student accounts are self-created only after server-side identity checks.
+[functions.create-student-account]
+verify_jwt = false

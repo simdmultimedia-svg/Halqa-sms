@@ -28,6 +28,9 @@ import { $, $$, el, toast } from "./core/utils.js";
 import { getBranding } from "./core/branding.js";
 import { applyLandingContent } from "./modules/landingeditor.js";
 import { applyOnlineClasses } from "./modules/onlineclasses.js";
+import { openStudentAccountCreation } from "./modules/studentaccount.js";
+
+window.openStudentAccountCreation = openStudentAccountCreation;
 
 const NAV = [
   { group: "Overview", items: [["dashboard", "Dashboard", "📊"]] },
@@ -521,13 +524,16 @@ function showLogin(portalType = "staff") {
   const heading = $("#login-heading");
   const portalNote = $("#login-portal-note");
   const loginEmail = $("#login-email");
+  const createStudentAccountBtn = $("#student-create-account-btn");
   if (portalType === "student") {
     if (heading) heading.textContent = "Student Portal Login";
-    if (portalNote) portalNote.textContent = "Students: sign in with the email and temporary password issued by the school.";
+    if (portalNote) portalNote.textContent = "Sign in with your school email and password. New learners can create an account after identity verification.";
     if (loginEmail && loginEmail.value === "admin@halqa.local") loginEmail.value = "";
+    if (createStudentAccountBtn) createStudentAccountBtn.classList.remove("hidden");
   } else {
     if (heading) heading.textContent = "Staff Portal Login";
     if (portalNote) portalNote.textContent = "Staff and administrators: sign in with your school account.";
+    if (createStudentAccountBtn) createStudentAccountBtn.classList.add("hidden");
   }
   if (sidebar) sidebar.classList.remove("open");
   if (scrim) scrim.classList.add("hidden");
