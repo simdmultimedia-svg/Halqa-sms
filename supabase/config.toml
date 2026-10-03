@@ -75,3 +75,6 @@ verify_jwt = false
 # Student accounts are self-created only after server-side identity checks.
 [functions.create-student-account]
 verify_jwt = false
+
+[functions.get-public-landing-settings]
+verify_jwt = false

@@ -44,6 +44,14 @@ export async function directSaveSetting(name, payload) {
     return false;
 }
 
+// Public visitors receive only the explicitly public settings required for
+// the landing page; private school records remain authenticated-only.
+export async function fetchPublicLandingSettings() {
+    const mod = await loadBackend();
+    if (mod.fetchPublicLandingSettings) return mod.fetchPublicLandingSettings();
+    return null;
+}
+
 export async function startListeners() {
     const mod = await loadBackend();
     return mod.startListeners();
@@ -62,6 +70,9 @@ export function getState() {
 }
 
 export function setMode(mode) {
+    // Persist before the backend module has loaded, so the first visit can
+    // initialise the cloud backend instead of remaining in local mode.
+    localStorage.setItem("HALQA:mode", mode);
     if (activeMod && activeMod.setMode) {
         return activeMod.setMode(mode);
     }

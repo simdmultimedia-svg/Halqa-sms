@@ -93,6 +93,17 @@ export async function directSaveSetting(name, payload) {
   return false;
 }
 
+// Used before sign-in to hydrate only public website content through the
+// server-side allowlist. It cannot request arbitrary records.
+export async function fetchPublicLandingSettings() {
+  if (!state.client) await initCloud();
+  if (!state.client || !state.online) return null;
+  const { data, error } = await state.client.functions.invoke("get-public-landing-settings", { body: {} });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data || null;
+}
+
 function localRecordTime(record) { return new Date(record?.updated_at || record?.updatedAt || 0).getTime(); }
 async function applyRemoteRow(row) {
   if (row.collection === "settings") {

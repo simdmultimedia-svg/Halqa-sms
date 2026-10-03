@@ -18,7 +18,7 @@ import { idbSet } from "./core/idb.js";
 import { store } from "./core/store.js";
 import { seedDefaults } from "./core/seed.js";
 import { getCurrentUser, login, logout, onAuthChange, restoreSession, waitForSessionCache } from "./core/auth.js";
-import { initCloud, refreshCloudData, startListeners, stopListeners, getState, setMode, logFirebaseDiagnostics } from "./core/adapter.js";
+import { initCloud, refreshCloudData, startListeners, stopListeners, getState, setMode, logFirebaseDiagnostics, fetchPublicLandingSettings } from "./core/adapter.js";
 import { initAutoUpdate } from "./core/autoupdate.js";
 import { loginWithBiometric } from "./core/webauthn.js";
 import { fingerprintServiceAvailable, captureFingerprint, identifyFingerprint } from "./core/fingerprint.js";
@@ -897,6 +897,13 @@ async function boot() {
   applyLandingContent(db.setting("landingPage"));
   applyOnlineClasses(db.setting("onlineClasses"));
   db.on("settings", () => { applyLandingContent(db.setting("landingPage")); applyOnlineClasses(db.setting("onlineClasses")); });
+  // Signed-out visitors load only the allowlisted public website settings.
+  // This makes admin changes visible on a fresh phone or computer.
+  void fetchPublicLandingSettings().then((publicSettings) => {
+    if (!publicSettings) return;
+    if (publicSettings.landingPage) db.save("settings", { ...publicSettings.landingPage, id:"landingPage", updated_at:publicSettings.landingUpdatedAt }, { sync:false, origin:"remote" });
+    if (publicSettings.onlineClasses) db.save("settings", { ...publicSettings.onlineClasses, id:"onlineClasses", updated_at:publicSettings.onlineClassesUpdatedAt }, { sync:false, origin:"remote" });
+  }).catch((error) => console.warn("[LANDING] Public settings refresh failed; using cached content.", error?.message));
   console.log(`[BOOT STEP] seedDefaults: ${Math.round(performance.now() - _t3)}ms`);
 
   // 5. Router
