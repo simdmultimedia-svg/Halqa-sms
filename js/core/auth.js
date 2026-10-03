@@ -84,11 +84,25 @@ async function getProfile(client, uid, sessionEmail = "") {
     }
   }
 
+  // The relational role join can briefly be empty immediately after a server
+  // creates a new account. The matching legacy role record is written in the
+  // same provisioning transaction and is a reliable, authenticated fallback.
+  let resolvedRole = getRole(data);
+  if (!resolvedRole) {
+    const { data: legacyRole, error: legacyRoleError } = await client
+      .from("legacy_records")
+      .select("payload")
+      .eq("collection", "userRoles")
+      .eq("record_id", uid)
+      .maybeSingle();
+    if (!legacyRoleError) resolvedRole = legacyRole?.payload?.role || null;
+  }
+
   return {
     uid,
     email: data.email || sessionEmail,
     name: data.full_name || "",
-    role: getRole(data) || data.role || "Staff",
+    role: resolvedRole || data.role || null,
     staffId: null,
     studentId: data.student_id || null,
     active: data.is_active,

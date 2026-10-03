@@ -67,7 +67,7 @@ serve(async (req) => {
 
     const { data: roleRow, error: roleError } = await admin.from("roles").select("id").eq("name", "Student").single();
     if (roleError || !roleRow) return json({ error:"The Student role is not configured. Contact the administrator." }, 500);
-    const { data: authData, error: createError } = await admin.auth.admin.createUser({ email, password, email_confirm:true, user_metadata:{ name, student_id:studentId, online_learner:mode === "online" } });
+    const { data: authData, error: createError } = await admin.auth.admin.createUser({ email, password, email_confirm:true, user_metadata:{ name, role:"Student", student_id:studentId, online_learner:mode === "online" } });
     if (createError || !authData.user) return json({ error:createError?.message || "Could not create the login account." }, 400);
     const uid = authData.user.id;
     const { data: profile, error: profileError } = await admin.from("users").insert({ auth_id:uid, email, full_name:name, is_active:true, student_id:studentId }).select("id").single();
