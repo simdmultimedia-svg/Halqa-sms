@@ -26,6 +26,16 @@ function getRole(profile) {
   return profile?.role || profile?.user_roles?.[0]?.roles?.name || null;
 }
 
+async function resolveProfileOnServer(client) {
+  try {
+    const { data, error } = await client.functions.invoke("resolve-account-profile", { body:{} });
+    if (error || data?.error || !data?.profile) return null;
+    return data.profile;
+  } catch {
+    return null;
+  }
+}
+
 async function getProfile(client, uid, sessionEmail = "") {
   const { data, error } = await client
     .from("users")
@@ -35,8 +45,13 @@ async function getProfile(client, uid, sessionEmail = "") {
 
   if (error) throw new Error(`Could not load account profile: ${error.message}`);
 
-  // Auto-create user profile if it doesn't exist
+  // A newly provisioned account can sign in before its client-side relational
+  // role query has caught up. Resolve the account on the server first.
   if (!data) {
+    const serverProfile = await resolveProfileOnServer(client);
+    if (serverProfile) return serverProfile;
+
+    // Auto-create user profile only for the historic bootstrap/admin flow.
     console.log("[AUTH] No profile found, creating user profile automatically");
     try {
       // Determine if this should be a Super Admin (first user or admin email)
@@ -96,6 +111,10 @@ async function getProfile(client, uid, sessionEmail = "") {
       .eq("record_id", uid)
       .maybeSingle();
     if (!legacyRoleError) resolvedRole = legacyRole?.payload?.role || null;
+  }
+  if (!resolvedRole) {
+    const serverProfile = await resolveProfileOnServer(client);
+    if (serverProfile) return serverProfile;
   }
 
   return {

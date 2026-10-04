@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.get-public-landing-settings]
 verify_jwt = false
+
+[functions.resolve-account-profile]
+verify_jwt = true

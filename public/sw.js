@@ -19,6 +19,7 @@ const SHELL = [
   "/assets/icon-384.png",
   "/assets/icon-512.png"
 ];
+const offlineResponse = () => new Response("Offline", { status: 503, statusText: "Service Unavailable", headers:{ "Content-Type":"text/plain" } });
 
 // Install Event: Cache App Shell (tolerant of missing files)
 self.addEventListener("install", (e) => {
@@ -68,8 +69,8 @@ function networkFirst(request) {
     return res;
   }).catch(() => caches.match(request).then((cached) => {
     if (cached) return cached;
-    if (request.mode === "navigate") return caches.match("/index.html");
-    return undefined;
+    if (request.mode === "navigate") return caches.match("/index.html").then((cached) => cached || offlineResponse());
+    return offlineResponse();
   }));
 }
 
@@ -83,7 +84,7 @@ function staleWhileRevalidate(request) {
       }
       return res;
     }).catch(() => { }); // silent fail if offline
-    return cached || fetchPromise;
+    return cached || fetchPromise.then((response) => response || offlineResponse());
   });
 }
 
@@ -126,9 +127,8 @@ self.addEventListener("fetch", (e) => {
           return res;
         }).catch(() => {
           // If offline and not cached, return a minimal offline page for navigation
-          if (e.request.mode === "navigate") {
-            return caches.match("/index.html");
-          }
+          if (e.request.mode === "navigate") return caches.match("/index.html").then((cached) => cached || offlineResponse());
+          return offlineResponse();
         });
       })
     );
@@ -141,4 +141,3 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
-
