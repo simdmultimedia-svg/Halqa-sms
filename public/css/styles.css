@@ -86,6 +86,7 @@ button { font-family: inherit; }
 .student-registration-card .student-registration-step > p,
 .student-registration-card .muted { color: #000; }
 .student-registration-card .field label { font-size: .9rem; font-weight: 500; margin-bottom: 5px; }
+.student-registration-card .required-mark { color: #c92f1a; font-weight: 800; }
 .student-registration-card .field input,
 .student-registration-card .field select,
 .student-registration-card .field textarea,

@@ -131,22 +131,29 @@ function newStudentFlow(host, ctx) {
     fileInp.onchange = async () => { if (fileInp.files[0]) { f.passport = await resizeImageAsDataURL(fileInp.files[0]); passport.innerHTML = `<img src="${f.passport}">`; } };
 
     const grid = el("div", { class: "form-grid" });
-    const fullName = input({ value: f.fullName || "", placeholder: "Full Name" });
+    const fullName = input({ value: f.fullName || "", placeholder: "Full Name", required: "required", autocomplete: "name" });
     const gender = select(() => ["", "Male", "Female"].map((g) => ({ value: g, label: g || "Select Gender", selected: f.gender === g })));
-    const dob = input({ type: "date", value: f.dob || "" });
-    const parentName = input({ value: f.parentName || "", placeholder: "Parent / Guardian Name" });
-    const parentPhone = input({ value: f.parentPhone || "", placeholder: "Parent Phone" });
-    const address = input({ value: f.address || "", placeholder: "Home Address" });
+    gender.required = true;
+    const dob = input({ type: "date", value: f.dob || "", max: todayISO(), required: "required" });
+    const parentName = input({ value: f.parentName || "", placeholder: "Parent / Guardian Name", required: "required", autocomplete: "name" });
+    const parentPhone = input({ type: "tel", value: f.parentPhone || "", placeholder: "Parent Phone", required: "required", autocomplete: "tel" });
+    const address = input({ value: f.address || "", placeholder: "Home Address", required: "required", autocomplete: "street-address" });
     const prevSchool = input({ value: f.previousSchool || "", placeholder: "Previous School (optional)" });
-    const admDate = input({ type: "date", value: f.admissionDate || todayISO() });
+    const admDate = input({ type: "date", value: f.admissionDate || todayISO(), required: "required" });
 
-    grid.appendChild(field("Full Name", fullName));
-    grid.appendChild(field("Gender", gender));
-    grid.appendChild(field("Date of Birth", dob));
-    grid.appendChild(field("Admission Date", admDate));
-    grid.appendChild(field("Parent / Guardian Name", parentName));
-    grid.appendChild(field("Parent Phone", parentPhone));
-    grid.appendChild(field("Address", address, { full: true }));
+    const requiredField = (label, node, opts = {}) => {
+      const container = field(label, node, opts);
+      const labelEl = container.querySelector("label");
+      if (labelEl) labelEl.appendChild(el("span", { class: "required-mark", text: " *", "aria-label": "required" }));
+      return container;
+    };
+    grid.appendChild(requiredField("Full Name", fullName));
+    grid.appendChild(requiredField("Gender", gender));
+    grid.appendChild(requiredField("Date of Birth", dob));
+    grid.appendChild(requiredField("Admission Date", admDate));
+    grid.appendChild(requiredField("Parent / Guardian Name", parentName));
+    grid.appendChild(requiredField("Parent Phone", parentPhone));
+    grid.appendChild(requiredField("Home Address", address, { full: true }));
     grid.appendChild(field("Previous School", prevSchool, { full: true }));
 
     const left = el("div", { style: "flex:1" }, [grid]);
@@ -197,7 +204,23 @@ function newStudentFlow(host, ctx) {
     const back = btn("\u2190 Back", { onclick: () => { state.step = 0; draw(); } });
     const next = btn("Continue \u2192", {
       variant: "primary", onclick: () => {
-        if (!fullName.value.trim()) return toast("Enter full name", "error");
+        const requiredDetails = [
+          [fullName, "full name"], [gender, "gender"], [dob, "date of birth"], [admDate, "admission date"],
+          [parentName, "parent or guardian name"], [parentPhone, "parent phone"], [address, "home address"]
+        ];
+        const missing = requiredDetails.find(([node]) => !String(node.value || "").trim());
+        if (missing) {
+          missing[0].focus();
+          return toast(`Enter the student's ${missing[1]}.`, "error");
+        }
+        if (dob.value > todayISO()) {
+          dob.focus();
+          return toast("Date of birth cannot be in the future.", "error");
+        }
+        if (parentPhone.value.replace(/\D/g, "").length < 7) {
+          parentPhone.focus();
+          return toast("Enter a valid parent or guardian phone number.", "error");
+        }
         if (state.createStudentAccount && !studentEmail.value.trim()) return toast("Enter student email for account creation", "error");
         Object.assign(f, {
           fullName: fullName.value.trim(), gender: gender.value, dob: dob.value, admissionDate: admDate.value,
