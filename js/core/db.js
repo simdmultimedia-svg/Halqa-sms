@@ -260,7 +260,6 @@ export async function flushQueue() {
       for (const op of ops) {
         processed.add(op.qid);
         
-        op.retryCount = (op.retryCount || 0) + 1;
         let drop = false;
         if (!op.col || !op.id) drop = true;
         if (drop && !CRITICAL_COLS.includes(op.col)) {
@@ -290,6 +289,9 @@ export async function flushQueue() {
         }
 
         try {
+          // Count only a real network attempt. Previously every scheduled
+          // queue check increased this number, even while in backoff.
+          op.retryCount = (op.retryCount || 0) + 1;
           const ok = await syncHandler(op);
           if (ok) {
             console.info(`[QUEUE] Success col:${op.col} id:${op.id} action:${op.action}`);

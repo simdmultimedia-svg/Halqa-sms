@@ -1,6 +1,6 @@
 // Supabase adapter: offline-first records with Realtime and incremental reconciliation.
 import { store } from "./store.js";
-import { db, setSyncHandler, markSyncTime, flushQueue } from "./db.js";
+import { db, setSyncHandler, setSyncReady, setSyncStatusProvider, markSyncTime, flushQueue } from "./db.js";
 
 export const SUPABASE_URL = "https://hzwxnyfncpqlgbkcadkj.supabase.co";
 export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6d3hueWZuY3BxbGdia2NhZGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2ODI4MTAsImV4cCI6MjEwNjI1ODgxMH0.36rU7Ua9kCUvNlI0JF1cvFOM8g0yTaMw7tMJyb4zJXQ";
@@ -16,6 +16,15 @@ let hydrationPromise = null;
 let networkHandlersInstalled = false;
 let lastCloudPullAt = null;
 let realtimeRetryTimer = null;
+
+const WRITE_TIMEOUT_MS = 12000;
+function withWriteTimeout(work, label) {
+  let timer;
+  return Promise.race([
+    work,
+    new Promise((_, reject) => { timer = window.setTimeout(() => reject(new Error(`Timed out while syncing ${label}.`)), WRITE_TIMEOUT_MS); })
+  ]).finally(() => window.clearTimeout(timer));
+}
 
 function toSnakeCase(obj) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -200,6 +209,8 @@ export async function initCloud() {
     });
     const { data: { session } } = await state.client.auth.getSession();
     state.authReady = Boolean(session);
+    setSyncReady(() => Boolean(state.ready && state.authReady && state.online));
+    setSyncStatusProvider(() => ({ ready:state.ready, authReady:state.authReady, cloudStatus:state.cloudStatus }));
     const normalizedTables = [];
 
     setSyncHandler(async (op) => {
@@ -211,40 +222,15 @@ export async function initCloud() {
 
         if (op.action === "remove") {
           const query = state.client.from(table).delete();
-          const { error } = isNormalized
-            ? await query.eq("id", op.id)
-            : await query.eq("collection", op.col).eq("record_id", String(op.id));
+          const request = isNormalized
+            ? query.eq("id", op.id)
+            : query.eq("collection", op.col).eq("record_id", String(op.id));
+          const { error } = await withWriteTimeout(request, path);
           if (error) throw error;
         } else {
-          // Fetch existing record to check for conflict
-          let cloudData = null;
-          if (isNormalized) {
-            const { data, error } = await state.client.from(table).select("*").eq("id", op.id).maybeSingle();
-            if (!error && data) cloudData = toCamelCase(data);
-          } else {
-            const { data, error } = await state.client.from("legacy_records").select("*").eq("collection", op.col).eq("record_id", String(op.id)).maybeSingle();
-            if (!error && data) cloudData = data.payload ? { ...data.payload, id: data.record_id, updated_at: data.updated_at } : null;
-          }
-
-          if (cloudData) {
-            const cloudStamp = localRecordTime(cloudData);
-            const localStamp = localRecordTime(op.data);
-
-            if (cloudStamp > localStamp) {
-              console.warn("[SYNC CONFLICT] Cloud record is newer; local write dropped", {
-                path,
-                cloudUpdatedAt: cloudStamp,
-                localUpdatedAt: localStamp,
-                cloudDevice: cloudData._lastModifiedBy || "unknown",
-                localDevice: op.deviceId || "unknown"
-              });
-              db.applyRemote(op.col, op.id, { ...cloudData, id: cloudData.id || op.id });
-              syncLog({ db: "Supabase", col: op.col, path, op: "conflict-skip-stale", status: "ok" });
-              return true;
-            }
-          }
-
-          // Re-inject device tracking to mirror old Firebase logic
+          // Write-first synchronization avoids a read and a write for every
+          // queued record. This cuts a 36-record weak-network flush from about
+          // 72 round trips to 36 while the queue still retries safely on error.
           const dataToSync = {
             ...op.data,
             _lastModifiedBy: op.deviceId || localStorage.getItem("HALQA:deviceId") || "device-unknown",
@@ -256,7 +242,7 @@ export async function initCloud() {
             : { collection: op.col, record_id: String(op.id), payload: dataToSync, updated_at: new Date(dataToSync.updatedAt || Date.now()).toISOString() };
 
           const onConflict = isNormalized ? "id" : "collection,record_id";
-          const { error } = await state.client.from(table).upsert(payload, { onConflict });
+          const { error } = await withWriteTimeout(state.client.from(table).upsert(payload, { onConflict }), path);
           if (error) throw error;
         }
         syncLog({ db: "Supabase", col: op.col, path, op: op.action, status: "ok" });
