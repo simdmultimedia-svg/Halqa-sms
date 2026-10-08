@@ -68,6 +68,7 @@ function newStudentFlow(host, ctx) {
   const draw = () => {
     host.innerHTML = "";
     const c = card("New Student Admission");
+    c.classList.add("student-registration-card");
     c.appendChild(termUI.wrap);
     c.appendChild(stepBar(state.step));
     if (state.step === 0) c.appendChild(stepSection());
@@ -78,7 +79,7 @@ function newStudentFlow(host, ctx) {
   };
 
   function stepSection() {
-    const wrap = el("div");
+    const wrap = el("div", { class: "student-registration-step" });
     wrap.appendChild(el("p", { class: "muted", text: "Step 1: Select the section and class to admit the student into." }));
 
     // Section chips
@@ -121,7 +122,7 @@ function newStudentFlow(host, ctx) {
   }
 
   function stepDetails() {
-    const wrap = el("div");
+    const wrap = el("div", { class: "student-registration-step" });
     const f = state.form;
     const passport = el("div", { class: "passport-drop", text: "Upload Passport" });
     if (f.passport) passport.innerHTML = `<img src="${f.passport}">`;
@@ -212,7 +213,7 @@ function newStudentFlow(host, ctx) {
   }
 
   function stepHealth() {
-    const wrap = el("div");
+    const wrap = el("div", { class: "student-registration-step" });
     wrap.appendChild(el("p", { class: "muted", text: "Step 3: Record any health conditions or medical history for this student (optional but recommended)." }));
     const h = state.health;
 
@@ -259,7 +260,7 @@ function newStudentFlow(host, ctx) {
   }
 
   function stepServices() {
-    const wrap = el("div");
+    const wrap = el("div", { class: "student-registration-step" });
 
     wrap.appendChild(el("p", { class: "muted", text: `Step 4: Select services for ${cfg.sectionName(state.sectionId)}. Section-specific prices apply.` }));
     const list = el("div");

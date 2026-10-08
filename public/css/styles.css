@@ -53,6 +53,85 @@ button { font-family: inherit; }
   width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px;
   background: var(--surface); color: var(--text); font-size: 14px; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--brand-2); border-color: transparent; }
+
+/* ---------- Student registration form ---------- */
+/* Scoped adaptation of the warm Uiverse form treatment. It deliberately only
+   affects the primary New Student Admission flow, leaving the rest of the
+   management application and public landing page unchanged. */
+.student-registration-card {
+  position: relative;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #FCEDDA;
+  border: 1px solid #EE4E34;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, .10);
+  color: #000;
+}
+.student-registration-card > .section-title {
+  justify-content: center;
+  margin-bottom: 15px;
+}
+.student-registration-card > .section-title h3 {
+  flex: initial !important;
+  margin: 0;
+  color: #000;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+.student-registration-card .field { margin-bottom: 10px; }
+.student-registration-card .field label,
+.student-registration-card .student-registration-step > p,
+.student-registration-card .muted { color: #000; }
+.student-registration-card .field label { font-size: .9rem; font-weight: 500; margin-bottom: 5px; }
+.student-registration-card .field input,
+.student-registration-card .field select,
+.student-registration-card .field textarea,
+.student-registration-card .inp {
+  min-height: 35px;
+  padding: 0 15px;
+  border: 1px solid #EE4E34;
+  border-radius: 6px;
+  background: #FCEDDA;
+  color: #000;
+  font-size: 1rem;
+}
+.student-registration-card .field textarea { padding-top: 9px; padding-bottom: 9px; }
+.student-registration-card .field input:focus,
+.student-registration-card .field select:focus,
+.student-registration-card .field textarea:focus {
+  outline: none;
+  border-color: #EE4E34;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .10);
+}
+.student-registration-card .form-grid { gap: 0 15px; }
+.student-registration-card .steps { gap: 6px; margin: 16px 0; }
+.student-registration-card .step { background: rgba(238, 78, 52, .12); color: #522116; }
+.student-registration-card .step.active,
+.student-registration-card .step.done { background: #EE4E34; color: #000; }
+.student-registration-card .chip { border-color: #EE4E34; color: #000; background: transparent; }
+.student-registration-card .chip.sel { background: #EE4E34; border-color: #EE4E34; color: #000; }
+.student-registration-card .passport-drop { border-color: #EE4E34; background: rgba(255,255,255,.45); color: #000; }
+.student-registration-card .svc-row { border-bottom-color: rgba(238, 78, 52, .35); }
+.student-registration-card .btn-primary,
+.student-registration-card .btn-success {
+  background: #EE4E34;
+  border-color: #EE4E34;
+  color: #000;
+}
+.student-registration-card .btn-primary:hover,
+.student-registration-card .btn-success:hover { background: #EE3E34; border-color: #EE3E34; }
+.student-registration-card .btn-ghost { border-color: #EE4E34; color: #000; }
+.student-registration-card input[type="checkbox"],
+.student-registration-card input[type="radio"] { accent-color: #EE4E34; }
+@media (max-width: 700px) {
+  .student-registration-card { max-width: 100%; padding: 18px 15px; }
+  .student-registration-card .form-grid { grid-template-columns: 1fr; }
+  .student-registration-card .steps { overflow-x: auto; }
+  .student-registration-card .step { min-width: 116px; }
+}
 .mode-row { display: flex; gap: 8px; margin-bottom: 14px; }
 .mode-row label { flex: 1; border: 1px solid var(--border); border-radius: 9px; padding: 8px; text-align: center;
   cursor: pointer; font-size: 12px; }
