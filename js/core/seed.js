@@ -38,13 +38,13 @@ const SUBJECTS = {
 };
 
 const SERVICES = [
-  { name: "Form Fee", optional: false, prices: { "pre-basic": 2000, basic: 2000, secondary: 2000, islamiyya: 1000, tahfiz: 1000 } },
-  { name: "Registration Fee", optional: false, prices: { "pre-basic": 5000, basic: 5000, secondary: 7000 } },
-  { name: "Miscellaneous Fee", optional: false, prices: { "pre-basic": 4000, basic: 5000, secondary: 5000 } },
-  { name: "Sport Fee", optional: true, prices: { "pre-basic": 2000, basic: 2000, secondary: 3000 } },
-  { name: "ID Card Fee", optional: false, prices: { "pre-basic": 1000, basic: 1000, secondary: 1000 } },
-  { name: "Exam Fee", optional: false, prices: { "pre-basic": 5000, basic: 8000, secondary: 10000, islamiyya: 3000, tahfiz: 3000 } },
-  { name: "Tuition Fee", optional: false, prices: { "pre-basic": 25000, basic: 35000, secondary: 60000, islamiyya: 15000, tahfiz: 20000 } }
+  { id: "svc-form-fee", type: "fee", name: "Form Fee", optional: false, prices: { "pre-basic": 2000, basic: 2000, secondary: 2000, islamiyya: 1000, tahfiz: 1000 } },
+  { id: "svc-registration-fee", type: "fee", name: "Registration Fee", optional: false, prices: { "pre-basic": 5000, basic: 5000, secondary: 7000 } },
+  { id: "svc-miscellaneous-fee", type: "fee", name: "Miscellaneous Fee", optional: false, prices: { "pre-basic": 4000, basic: 5000, secondary: 5000 } },
+  { id: "svc-sport-fee", type: "fee", name: "Sport Fee", optional: true, prices: { "pre-basic": 2000, basic: 2000, secondary: 3000 } },
+  { id: "svc-id-card-fee", type: "fee", name: "ID Card Fee", optional: false, prices: { "pre-basic": 1000, basic: 1000, secondary: 1000 } },
+  { id: "svc-exam-fee", type: "fee", name: "Exam Fee", optional: false, prices: { "pre-basic": 5000, basic: 8000, secondary: 10000, islamiyya: 3000, tahfiz: 3000 } },
+  { id: "svc-tuition-fee", type: "fee", name: "Tuition Fee", optional: false, prices: { "pre-basic": 25000, basic: 35000, secondary: 60000, islamiyya: 15000, tahfiz: 20000 } }
 ];
 
 const PROGRAM_FEES = {
@@ -154,6 +154,20 @@ export function seedDefaults() {
       services: SERVICES, programFees: PROGRAM_FEES, 
       uniforms: UNIFORMS, books: BOOKS, uniformItems: UNIFORM_ITEM_NAMES 
     }, { sync: false });
+  }
+
+  // The first releases kept fee services inside the legacy `fees` setting.
+  // Mirror that data into the editable Services setting once, preserving every
+  // school-configured amount and making it visible in Settings on this device.
+  const savedServices = db.setting("services");
+  if (!savedServices || !Array.isArray(savedServices.list) || !savedServices.list.length) {
+    const legacyServices = (db.setting("fees") || {}).services || SERVICES;
+    const list = legacyServices.map((service, index) => ({
+      ...service,
+      id: service.id || `svc-${String(service.name || index).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || index}`,
+      type: service.type || "fee"
+    }));
+    db.saveSetting("services", { list }, { sync: false });
   }
 
   if (!db.setting("sessions")) db.saveSetting("sessions", {

@@ -67,14 +67,18 @@ export function calculatePositions(resultsArray) {
  * 2. FINANCE
  */
 
+export function calculateLineTotal(item = {}) {
+  // A line with unitPrice is quantity-based. `amount` remains the stored
+  // line total for backwards-compatible records that have no unit price.
+  if (item.unitPrice !== undefined && item.quantity !== undefined) {
+    return roundCurrency(Math.max(0, num(item.quantity)) * Math.max(0, num(item.unitPrice)));
+  }
+  return roundCurrency(num(item.amount ?? item.totalAmount ?? 0));
+}
+
 export function calculateInvoiceTotal(itemsArray) {
   if (!Array.isArray(itemsArray)) return 0;
-  const sum = itemsArray.reduce((acc, item) => {
-    if (item.unitPrice !== undefined && item.quantity !== undefined) {
-      return acc + (num(item.quantity) * num(item.unitPrice));
-    }
-    return acc + num(item.amount || item.totalAmount || 0);
-  }, 0);
+  const sum = itemsArray.reduce((acc, item) => acc + calculateLineTotal(item), 0);
   return roundCurrency(sum);
 }
 
@@ -127,6 +131,7 @@ export const calc = {
   calculateStudentSubjectTotal,
   calculateStudentAverage,
   calculatePositions,
+  calculateLineTotal,
   calculateInvoiceTotal,
   calculateTotalPaid,
   calculateOutstandingBalance,

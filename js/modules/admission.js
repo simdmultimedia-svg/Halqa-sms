@@ -11,6 +11,7 @@ import { showInvoice } from "./invoices.js";
 import { bookSelector, deductBookStock } from "./bookshop.js";
 import { uniformSelector, buildUniformLines } from "./uniforms.js";
 import { sendSms } from "../core/sms.js";
+import { calculateInvoiceTotal } from "../core/calculations.js";
 
 export function render(root, ctx) {
   root.appendChild(pageHead("Admission", "Register new students or process returning students. Admission never collects money \u2014 it generates an invoice."));
@@ -262,7 +263,13 @@ function newStudentFlow(host, ctx) {
 
     wrap.appendChild(el("p", { class: "muted", text: `Step 4: Select services for ${cfg.sectionName(state.sectionId)}. Section-specific prices apply.` }));
     const list = el("div");
-    const feeServices = cfg.servicesForSection(state.sectionId).filter((s) => s.type === "fee" && !isTuitionService(s));
+    // A program charge replaces its matching tuition service. If the school
+    // has no priced program configured, keep Tuition Fee in the selectable
+    // charges so it cannot be omitted from the student's invoice.
+    const hasProgramCharge = state.programIds.some((id) => num(cfg.program(id)?.fee) > 0);
+    const feeServices = cfg.servicesForSection(state.sectionId).filter((s) =>
+      s.type === "fee" && (!isTuitionService(s) || !hasProgramCharge)
+    );
 
     // Display enrolled program fees as read-only items
     state.programIds.forEach((pid) => {
@@ -317,8 +324,7 @@ function newStudentFlow(host, ctx) {
 
     function recalc() {
       const lines = buildServiceLines(state.sectionId, { serviceIds: state.serviceIds, uniformSelection: state.uniformSelection, classId: state.classId, includeBooks: state.includeBooks });
-      const bookTotal = (state.selectedBookLines || []).reduce((a, s) => a + s.amount, 0);
-      totalEl.textContent = "Total: " + naira(lines.reduce((a, s) => a + s.amount, 0) + bookTotal + programFeeTotal(state));
+      totalEl.textContent = "Total: " + naira(calculateInvoiceTotal([...lines, ...(state.selectedBookLines || [])]) + programFeeTotal(state));
     }
     recalc();
 
@@ -704,7 +710,10 @@ function returningFlow(host, ctx) {
       });
     });
 
-    cfg.servicesForSection(student.sectionId).filter((s) => s.type === "fee" && !isTuitionService(s)).forEach((s) => {
+    const hasProgramCharge = programFeeTotal(student) > 0;
+    cfg.servicesForSection(student.sectionId).filter((s) =>
+      s.type === "fee" && (!isTuitionService(s) || !hasProgramCharge)
+    ).forEach((s) => {
       const cb = input({ type: "checkbox" });
       cb.onchange = () => { if (cb.checked) serviceIds.push(s.id); else { const i = serviceIds.indexOf(s.id); if (i >= 0) serviceIds.splice(i, 1); } recalc(); };
       list.appendChild(el("div", { class: "svc-row" }, [cb, el("span", { class: "nm", text: s.name }), el("span", { class: "amt", text: naira(cfg.servicePrice(s.id, student.sectionId)) })]));
@@ -743,8 +752,7 @@ function returningFlow(host, ctx) {
     svcHost.appendChild(totalEl);
     function recalc() {
       const lines = buildServiceLines(student.sectionId, { serviceIds, uniformSelection, classId: student.classId, includeBooks });
-      const bookTotal = selectedBookLines.reduce((a, s) => a + s.amount, 0);
-      totalEl.textContent = "Total: " + naira(lines.reduce((a, s) => a + s.amount, 0) + bookTotal + programFeeTotal(student));
+      totalEl.textContent = "Total: " + naira(calculateInvoiceTotal([...lines, ...selectedBookLines]) + programFeeTotal(student));
     }
     recalc();
     const gen = btn("Generate Invoice", {
@@ -920,12 +928,11 @@ function fullProgramFlow(host, ctx) {
     preview.innerHTML = "";
     if (!sid) { preview.appendChild(el("p", { class: "muted", text: "Select a section to preview the consolidated fees." })); return; }
     const lines = fullProgramLines(sid, { ...f, classId: clsSel.value, includeBooks: f.includeBooks && !(f.selectedBookLines || []).length });
-    const bookTotal = (f.selectedBookLines || []).reduce((a, s) => a + s.amount, 0);
     const rows = lines.map((l) => el("div", { class: "svc-row" }, [el("span", { class: "nm", text: l.name }), el("span", { class: "amt", text: naira(l.amount) })]));
     (f.selectedBookLines || []).forEach((l) => rows.push(el("div", { class: "svc-row" }, [el("span", { class: "nm", text: l.name }), el("span", { class: "amt", text: naira(l.amount) })])));
     preview.appendChild(el("div", { style: "font-weight:700;margin-bottom:6px", text: "Consolidated Invoice Preview" }));
     rows.forEach((r) => preview.appendChild(r));
-    preview.appendChild(el("div", { style: "text-align:right;font-weight:800;font-size:17px;margin-top:8px", text: "Total Charges: " + naira(lines.reduce((a, s) => a + s.amount, 0) + bookTotal) }));
+    preview.appendChild(el("div", { style: "text-align:right;font-weight:800;font-size:17px;margin-top:8px", text: "Total Charges: " + naira(calculateInvoiceTotal([...lines, ...(f.selectedBookLines || [])])) }));
   }
   recalc();
 
@@ -1068,8 +1075,7 @@ function migrationFlow(host, ctx) {
 
   function recalc() {
     const balTotal = num(balTuition.value) + num(balTransport.value) + num(balFeeding.value) + num(balBooks.value) + num(balOther.value);
-    const bookTotal = selectedBookLines.reduce((a, s) => a + s.amount, 0);
-    totalEl.textContent = "Total: " + naira(balTotal + bookTotal);
+    totalEl.textContent = "Total: " + naira(balTotal + calculateInvoiceTotal(selectedBookLines));
   }
   recalc();
 

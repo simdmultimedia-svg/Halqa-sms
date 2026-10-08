@@ -25,7 +25,19 @@ export function className(id) {
 }
 
 export function services() {
-  return ((db.setting("services") || {}).list || []).filter((s) => s.active !== false);
+  const configured = (db.setting("services") || {}).list;
+  // Older installations stored their service list under `fees.services` and
+  // did not give every item an id or type. Keep those existing school fees
+  // billable instead of silently resolving them to zero during registration.
+  const legacy = (db.setting("fees") || {}).services;
+  const list = Array.isArray(configured) && configured.length ? configured : (Array.isArray(legacy) ? legacy : []);
+  return list
+    .filter((s) => s && s.active !== false)
+    .map((s, index) => ({
+      ...s,
+      id: s.id || `svc-${String(s.name || index).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || index}`,
+      type: String(s.type || "fee").toLowerCase()
+    }));
 }
 
 export function programs({ activeOnly = true, session = currentSession(), term = currentTerm() } = {}) {
@@ -125,25 +137,32 @@ export function schoolSignatures() {
 export function servicesForSection(sectionId) {
   return services().filter((s) => {
     if (s.type === "uniform") return true;
-    if (s.type === "books") return num((db.setting("books") || {}).bySection?.[sectionId]) > 0;
-    return num(s.prices?.[sectionId]) > 0;
+    if (s.type === "books") return booksPrice(sectionId) > 0;
+    return servicePrice(s.id, sectionId) > 0;
   });
 }
 export function servicePrice(serviceId, sectionId) {
   const s = services().find((x) => x.id === serviceId);
   if (!s) return 0;
-  if (s.type === "books") return num((db.setting("books") || {}).bySection?.[sectionId]);
-  return num(s.prices?.[sectionId]);
+  if (s.type === "books") return booksPrice(sectionId);
+  const prices = s.prices || s.priceBySection || s.bySection || {};
+  // Accept the established section-price shape as well as older single-price
+  // services, so a selected fee can never disappear from an invoice.
+  return num(prices?.[sectionId] ?? s[sectionId] ?? s.price ?? s.amount ?? 0);
 }
 
 export function uniformPrices(sectionId) {
-  return (db.setting("uniforms") || {}).bySection?.[sectionId] || {};
+  const configured = db.setting("uniforms") || {};
+  const legacy = db.setting("fees") || {};
+  return configured.bySection?.[sectionId] || legacy.uniforms?.[sectionId] || {};
 }
 export function uniformPrice(sectionId, type) {
   return num(uniformPrices(sectionId)[type]);
 }
 export function booksPrice(sectionId) {
-  return num((db.setting("books") || {}).bySection?.[sectionId]);
+  const configured = db.setting("books") || {};
+  const legacy = db.setting("fees") || {};
+  return num(configured.bySection?.[sectionId] ?? legacy.books?.[sectionId]);
 }
 
 export function subjects(sectionId) {

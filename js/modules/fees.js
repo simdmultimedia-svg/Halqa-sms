@@ -1,6 +1,6 @@
 import { db } from "../core/db.js";
 import { el, toast, naira, num, fmtDate, modal } from "../core/utils.js";
-import { calculateInvoiceTotal } from "../core/calculations.js";
+import { calculateInvoiceTotal, calculateLineTotal } from "../core/calculations.js";
 import { card, pageHead, table, btn, input, field, select, studentPicker } from "../core/ui.js";
 import { applyPayment, recalcInvoice, removeService, invoiceForStudent } from "../core/billing.js";
 import { can } from "../core/rbac.js";
@@ -110,7 +110,7 @@ export function render(root, ctx) {
 
     const svcCols = [
       { label: "Description", key: "name" },
-      { label: "Amount", align: "right", render: (s) => naira(s.amount) },
+      { label: "Amount", align: "right", render: (s) => naira(calculateLineTotal(s)) },
       { label: "", render: (s) => s._remove }
     ];
     const summary = el("div", { class: "grid grid-4" }, [

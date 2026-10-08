@@ -3,6 +3,7 @@
 import { headerHtml, getBranding } from "./branding.js";
 import { makeQr } from "./print.js";
 import { naira, fmtDate, fmtDateTime, escapeHtml, num, ordinal } from "./utils.js";
+import { calculateInvoiceTotal, calculateLineTotal } from "./calculations.js";
 import * as cfg from "./config.js";
 
 const statusBadge = (status) => {
@@ -134,7 +135,7 @@ export function invoiceDoc(inv, student) {
   const fmtSec = secName === "Pending Assignment" ? `<span style="color:var(--danger, red);font-weight:bold;">Pending Assignment</span>` : escapeHtml(secName);
 
   const qr = makeQr(JSON.stringify({ inv: inv.invoiceNo, sid: inv.studentId, adm: inv.admissionNo }), 84);
-  const rows = (inv.services || []).map((s) => `<tr><td>${escapeHtml(s.name)}</td><td class="right">${naira(s.amount)}</td></tr>`).join("");
+  const rows = (inv.services || []).map((s) => `<tr><td>${escapeHtml(s.name)}</td><td class="right">${naira(calculateLineTotal(s))}</td></tr>`).join("");
   const programText = student ? cfg.studentProgramIds(student).map((id) => cfg.programName(id)).join(", ") : "";
   const payRows = (inv.payments || []).map((p) =>
     `<tr><td>${escapeHtml(p.receiptNo)}</td><td>${fmtDate(p.date)}</td><td class="right">${naira(p.amount)}</td></tr>`).join("")
@@ -178,7 +179,7 @@ export function invoiceDoc(inv, student) {
     <colgroup><col style="width:72%"><col style="width:28%"></colgroup>
     <tr><th>Fee Item</th><th class="right">Amount</th></tr>
     ${rows}
-    <tr style="border-top:1px solid #ddd"><td><b>Gross Charges</b></td><td class="right"><b>${naira(inv.grossAmount || (inv.services || []).reduce((a, s) => a + num(s.amount), 0))}</b></td></tr>
+    <tr style="border-top:1px solid #ddd"><td><b>Gross Charges</b></td><td class="right"><b>${naira(inv.grossAmount ?? calculateInvoiceTotal(inv.services || []))}</b></td></tr>
     ${adjustmentRows}
     <tr class="totals"><td>Net Amount Payable</td><td class="right">${naira(inv.totalAmount)}</td></tr>
   </table>

@@ -45,7 +45,8 @@ export function buildServiceLines(sectionId, opts = {}) {
     } else if (s.type === "books") {
       if (includeBooks && !hasIndividualBooks(sectionId, classId) && cfg.booksPrice(sectionId) > 0) lines.push({ id: s.id, name: "Books", amount: cfg.booksPrice(sectionId), type: "book", optional: true, legacyBookCharge: true });
     } else if (serviceIds.includes(s.id)) {
-      lines.push({ id: s.id, name: s.name, amount: cfg.servicePrice(s.id, sectionId), type: "fee", optional: !!s.optional });
+      const unitPrice = cfg.servicePrice(s.id, sectionId);
+      if (unitPrice > 0) lines.push({ id: s.id, name: s.name, amount: unitPrice, unitPrice, quantity: 1, type: "fee", optional: !!s.optional });
     }
   });
   return lines;
