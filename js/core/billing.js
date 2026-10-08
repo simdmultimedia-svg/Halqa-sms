@@ -37,11 +37,20 @@ export function buildServiceLines(sectionId, opts = {}) {
   opts = opts && typeof opts === "object" ? opts : {};
   const { uniformType = "", uniformSelection = null, classId = "", includeBooks = false } = opts;
   const serviceIds = safeArray(opts.serviceIds);
-  const lines = [];
+  // Uniform packages and additional uniform items live in their own settings
+  // catalogue, not in the general Services list. Build them first so they are
+  // always included when selected, even where no legacy "uniform" service
+  // record exists.
+  const lines = uniformSelection
+    ? buildUniformLines(sectionId, classId, uniformSelection)
+    : (uniformType && cfg.uniformPrice(sectionId, uniformType) > 0
+      ? [{ id: `uniform-${sectionId}-${uniformType}`, name: `Uniform (${uniformType})`, amount: cfg.uniformPrice(sectionId, uniformType), unitPrice: cfg.uniformPrice(sectionId, uniformType), quantity: 1, type: "uniform", optional: false, meta: { uniformType } }]
+      : []);
   cfg.services().forEach((s) => {
     if (s.type === "uniform") {
-      if (uniformSelection) lines.push(...buildUniformLines(sectionId, classId, uniformSelection));
-      else if (uniformType) lines.push({ id: s.id, name: `Uniform (${uniformType})`, amount: cfg.uniformPrice(sectionId, uniformType), type: "uniform", optional: false, meta: { uniformType } });
+      // Handled above from the uniform catalogue. Do not double-charge old
+      // installations that also retain a legacy uniform service record.
+      return;
     } else if (s.type === "books") {
       if (includeBooks && !hasIndividualBooks(sectionId, classId) && cfg.booksPrice(sectionId) > 0) lines.push({ id: s.id, name: "Books", amount: cfg.booksPrice(sectionId), type: "book", optional: true, legacyBookCharge: true });
     } else if (serviceIds.includes(s.id)) {
