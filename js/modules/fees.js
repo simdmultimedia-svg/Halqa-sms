@@ -13,13 +13,19 @@ export function render(root, ctx) {
   if (!can(ctx.user.role, "collectPayment")) {
     root.appendChild(card("Access", [el("p", { class: "muted", text: "Your role can view fees but not collect payments." })]));
   }
-  const searchWrap = el("div", { style: "position:relative;" });
+  const searchWrap = el("div", { style: "position:relative; z-index:20;" });
   const searchInp = input({ type: "search", placeholder: "Search by name, admission no, phone, or class...", style: "width:100%; padding:10px; font-size:16px;" });
   const resultsDiv = el("div", { style: "position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:10; max-height:300px; overflow-y:auto; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.15);" });
   
   searchWrap.appendChild(searchInp);
   searchWrap.appendChild(resultsDiv);
-  root.appendChild(card("Find Student", [searchWrap]));
+  const searchCard = card("Find Student", [searchWrap]);
+  // The shared landing-page card style uses overflow:hidden. Override it for
+  // this autocomplete panel so full student rows remain visible below input.
+  searchCard.style.overflow = "visible";
+  searchCard.style.position = "relative";
+  searchCard.style.zIndex = "20";
+  root.appendChild(searchCard);
   
   const host = el("div");
   root.appendChild(host);
