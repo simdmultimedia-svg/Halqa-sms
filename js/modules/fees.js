@@ -24,12 +24,9 @@ export function render(root, ctx) {
   const host = el("div");
   root.appendChild(host);
 
-  let allStudents = [];
-  
-  // Load students asynchronously to not block UI
-  import("../core/db.js").then(({ db }) => {
-    allStudents = db.list("students").filter(s => s.status !== "graduated");
-  });
+  const studentName = (student) => String(
+    student?.fullName || student?.name || [student?.firstName, student?.lastName].filter(Boolean).join(" ") || "Unnamed student"
+  ).trim();
 
   searchInp.oninput = () => {
     const q = searchInp.value.toLowerCase().trim();
@@ -38,13 +35,15 @@ export function render(root, ctx) {
       resultsDiv.style.display = "none";
       return;
     }
-    const matches = allStudents.filter(s => {
+    // Read the current local data at search time. A one-time async cache could
+    // be empty while the user typed or stale after a cloud sync completed.
+    const matches = db.list("students").filter(s => s.status !== "graduated").filter(s => {
       const clsName = (cfg.className(s.classId) || "").toLowerCase();
-      return (s.fullName || "").toLowerCase().includes(q) ||
+      return studentName(s).toLowerCase().includes(q) ||
              (s.admissionNo || "").toLowerCase().includes(q) ||
              (s.parentPhone || "").toLowerCase().includes(q) ||
              clsName.includes(q);
-    }).slice(0, 20); // Limit to 20 results for speed
+    }).sort((a, b) => studentName(a).localeCompare(studentName(b))).slice(0, 20); // Limit to 20 results for speed
     
     if (matches.length === 0) {
       resultsDiv.appendChild(el("div", { style: "padding:10px; color:#888;", text: "No students found." }));
@@ -53,7 +52,7 @@ export function render(root, ctx) {
         const row = el("div", { 
           style: "padding:10px; border-bottom:1px solid #eee; cursor:pointer; display:flex; justify-content:space-between; align-items:center;",
           onclick: () => {
-            searchInp.value = s.fullName;
+            searchInp.value = studentName(s);
             resultsDiv.style.display = "none";
             loadStudent(s.id);
           }
@@ -61,13 +60,13 @@ export function render(root, ctx) {
         row.onmouseover = () => row.style.background = "#f4f6f8";
         row.onmouseout = () => row.style.background = "transparent";
         
-        row.appendChild(el("div", {}, [
-          el("div", { style: "font-weight:700; color:#111;", text: s.fullName }),
-          el("div", { style: "font-size:12px; color:#666;", text: `Admn: ${s.admissionNo} â€¢ Class: ${cfg.className(s.classId)} â€¢ Phone: ${s.parentPhone || "N/A"}` })
+        row.appendChild(el("div", { style: "flex:1; min-width:0; padding-right:8px;" }, [
+          el("div", { style: "font-weight:700; color:#111; overflow-wrap:anywhere;", text: studentName(s) }),
+          el("div", { style: "font-size:12px; color:#666; overflow-wrap:anywhere;", text: `Admn: ${s.admissionNo || "—"} â€¢ Class: ${cfg.className(s.classId)} â€¢ Phone: ${s.parentPhone || "N/A"}` })
         ]));
         
         const invoiceCount = invoiceForStudent(s.id).length;
-        row.appendChild(el("div", { style: "font-size:11px; padding:3px 6px; background:#e0e7ff; color:#3730a3; border-radius:4px;", text: `${invoiceCount} Invoice(s)` }));
+        row.appendChild(el("div", { style: "flex:none; white-space:nowrap; font-size:11px; padding:3px 6px; background:#e0e7ff; color:#3730a3; border-radius:4px;", text: `${invoiceCount} Invoice(s)` }));
         
         resultsDiv.appendChild(row);
       });
