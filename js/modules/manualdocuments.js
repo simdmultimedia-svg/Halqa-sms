@@ -2,7 +2,7 @@
 // These records deliberately reuse the invoice/receipt collections so they are
 // retained, synced, and audited in the same way as normal school billing.
 import { db } from "../core/db.js";
-import { el, toast, naira, fmtDate, escapeHtml, num, uuid } from "../core/utils.js";
+import { el, toast, naira, fmtDate, escapeHtml, num, uuid, modal } from "../core/utils.js";
 import { card, pageHead, table, btn, input, textarea, select, field } from "../core/ui.js";
 import { invoiceDoc, receiptDoc } from "../core/documents.js";
 import { previewHtml, downloadPdf } from "../core/print.js";
