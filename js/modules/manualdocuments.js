@@ -146,10 +146,36 @@ export function renderPrintCenter(root) {
     if (!docs.length) return toast("Select at least one manual document.", "error"); previewHtml(sixUpHtml(docs), { title: `Manual documents — ${docs.length} selected` });
   };
   const draw = () => {
-    host.innerHTML = ""; const docs = [...manualInvoices().map(record => ({ type:"invoice", record })), ...manualReceipts().map(record => ({ type:"receipt", record }))].sort((a,b) => (b.record.createdAt || b.record.date || 0) - (a.record.createdAt || a.record.date || 0));
-    const toggleAll = btn(selected.size === docs.length && docs.length ? "Clear selection" : "Select all", { onclick: () => { if (selected.size === docs.length) selected.clear(); else docs.forEach(d=>selected.add(`${d.type}:${d.record.id}`)); draw(); } });
-    const print = btn(`Print compact six-per-A4 (${selected.size})`, { variant:"primary", icon:"🖨️", onclick: printSelected });
-    host.appendChild(card("Manual print queue", [el("div", { class:"row", style:"justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px" }, [el("div", { class:"muted", text:"Each A4 page holds up to six compact branded manual invoices or receipts." }), el("div", { class:"row", style:"gap:8px" }, [toggleAll, print])]), table([{ label:"", render:d=>{ const key=`${d.type}:${d.record.id}`; const check=input({type:"checkbox",checked:selected.has(key)}); check.onchange=()=>{check.checked?selected.add(key):selected.delete(key);draw();};return check;} }, { label:"Type", render:d=>d.type === "invoice" ? "Manual Invoice" : "Manual Receipt" }, { label:"Document No", render:d=>d.type === "invoice" ? d.record.invoiceNo : d.record.receiptNo }, { label:"Customer", render:d=>personName(d.record) }, { label:"Amount", align:"right", render:d=>naira(d.type === "invoice" ? d.record.totalAmount : d.record.amount) }, { label:"Date", render:d=>fmtDate(d.record.createdAt || d.record.date) }, { label:"", render:d=>documentActions(d.record,d.type) }], docs, { empty:"No manual documents available for printing." })]));
+    host.innerHTML = "";
+    const docs = [...manualInvoices().map(record => ({ type:"invoice", record })), ...manualReceipts().map(record => ({ type:"receipt", record }))].sort((a,b) => (b.record.createdAt || b.record.date || 0) - (a.record.createdAt || a.record.date || 0));
+    const keys = new Set(docs.map(d => `${d.type}:${d.record.id}`));
+    [...selected].forEach(key => { if (!keys.has(key)) selected.delete(key); });
+    const selectType = (type) => {
+      docs.filter(d => d.type === type).forEach(d => selected.add(`${d.type}:${d.record.id}`));
+      draw();
+    };
+    const clearSelection = () => { selected.clear(); draw(); };
+    const selectAll = () => { docs.forEach(d => selected.add(`${d.type}:${d.record.id}`)); draw(); };
+    const print = btn(`Print selected (${selected.size}) — six per A4`, { variant:"primary", icon:"🖨️", onclick: printSelected });
+    const choose = el("div", { class:"row", style:"gap:8px;flex-wrap:wrap" }, [
+      btn("Select all", { onclick: selectAll }),
+      btn("Select invoices", { onclick: () => selectType("invoice") }),
+      btn("Select receipts", { onclick: () => selectType("receipt") }),
+      btn("Clear", { variant:"ghost", onclick: clearSelection }), print
+    ]);
+    const selectionStatus = el("div", { style:"font-weight:700;color:var(--primary,#123f7a)" }, `${selected.size} document${selected.size === 1 ? "" : "s"} selected`);
+    const selectCell = (d) => {
+      const key = `${d.type}:${d.record.id}`;
+      const check = input({ type:"checkbox", checked:selected.has(key), title:`Select ${d.type === "invoice" ? d.record.invoiceNo : d.record.receiptNo}` });
+      check.onclick = (event) => event.stopPropagation();
+      check.onchange = () => { check.checked ? selected.add(key) : selected.delete(key); draw(); };
+      return check;
+    };
+    host.appendChild(card("Manual print queue", [
+      el("div", { class:"row", style:"justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px" }, [selectionStatus, choose]),
+      el("div", { class:"muted", style:"margin-bottom:12px", text:"Tick individual rows below, choose a document type, or select all. Only your selected documents are included in the compact A4 print job." }),
+      table([{ label:"Select", align:"center", render:selectCell }, { label:"Type", render:d=>d.type === "invoice" ? "School Invoice" : "Payment Receipt" }, { label:"Document No", render:d=>d.type === "invoice" ? d.record.invoiceNo : d.record.receiptNo }, { label:"Customer", render:d=>personName(d.record) }, { label:"Amount", align:"right", render:d=>naira(d.type === "invoice" ? d.record.totalAmount : d.record.amount) }, { label:"Date", render:d=>fmtDate(d.record.createdAt || d.record.date) }, { label:"", render:d=>documentActions(d.record,d.type) }], docs, { empty:"No manual documents available for printing." })
+    ]));
   };
   draw(); const offI = db.on("invoices", draw); const offR = db.on("receipts", draw); return () => { offI(); offR(); };
 }
