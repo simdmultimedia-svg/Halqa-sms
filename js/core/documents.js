@@ -153,7 +153,7 @@ export function invoiceDoc(inv, student) {
   ${invoiceHeaderHtml(student)}
   <div class="invoice-title-row">
     <div>
-      <div class="invoice-title">${escapeHtml(inv.manual ? "Manual Invoice" : "Fee Invoice")}</div>
+      <div class="invoice-title">${escapeHtml(inv.manual ? "School Invoice" : "Fee Invoice")}</div>
       <div class="invoice-subtitle">Official school financial document</div>
     </div>
     <div class="invoice-balance-card"><span>Outstanding Balance</span><b>${naira(inv.balance)}</b></div>
