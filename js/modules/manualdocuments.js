@@ -166,9 +166,16 @@ export function renderPrintCenter(root) {
     const selectionStatus = el("div", { style:"font-weight:700;color:var(--primary,#123f7a)" }, `${selected.size} document${selected.size === 1 ? "" : "s"} selected`);
     const selectCell = (d) => {
       const key = `${d.type}:${d.record.id}`;
-      const check = input({ type:"checkbox", checked:selected.has(key), title:`Select ${d.type === "invoice" ? d.record.invoiceNo : d.record.receiptNo}` });
-      check.onclick = (event) => event.stopPropagation();
-      check.onchange = () => { check.checked ? selected.add(key) : selected.delete(key); draw(); };
+      // `checked` must be a DOM property, not an HTML attribute. In HTML,
+      // checked="false" still means checked, which previously stopped rows
+      // from showing their true selection state after a redraw.
+      const check = input({ type:"checkbox", title:`Select ${d.type === "invoice" ? d.record.invoiceNo : d.record.receiptNo}`, style:"width:18px;height:18px;cursor:pointer" });
+      check.checked = selected.has(key);
+      check.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (check.checked) selected.add(key); else selected.delete(key);
+        draw();
+      });
       return check;
     };
     host.appendChild(card("Manual print queue", [
