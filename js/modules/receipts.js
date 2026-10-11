@@ -1,13 +1,14 @@
 import { db } from "../core/db.js";
 import { el, toast, naira, fmtDateTime, modal, debounce } from "../core/utils.js";
 import { card, pageHead, table, btn, input } from "../core/ui.js";
-import { receiptDoc } from "../core/documents.js";
+import { receiptDoc, familyReceiptDoc } from "../core/documents.js";
 import { previewHtml, downloadPdf, downloadImage, shareDocumentToWhatsApp } from "../core/print.js";
 import { calculateTotalPaid } from "../core/calculations.js";
 import { softDeleteReceipt } from "../core/billing.js";
 import { lazyListen } from "../core/adapter.js";
 import { can } from "../core/rbac.js";
 import * as cfg from "../core/config.js";
+import { getFamily, familyStudents } from "../core/family.js";
 
 export function showReceipt(receiptId) {
   const r = db.get("receipts", receiptId);
@@ -15,6 +16,17 @@ export function showReceipt(receiptId) {
   const student = db.get("students", r.studentId);
   const invoice = db.get("invoices", r.invoiceId);
   const html = receiptDoc(r, student, invoice);
+  const family = r.familyId ? getFamily(r.familyId) : (student?.familyId ? getFamily(student.familyId) : null);
+  const openFamilyReceipt = () => {
+    if (!family || familyStudents(family).length < 2) return toast("This student is not linked to a multi-child family.", "info");
+    const memberIds = new Set(familyStudents(family).map(s => s.id));
+    const group = r.familyPaymentId
+      ? db.query("receipts", x => x.familyPaymentId === r.familyPaymentId)
+      : db.query("receipts", x => memberIds.has(x.studentId) && Math.abs((x.date || 0) - (r.date || 0)) < 60000);
+    if (group.length < 2) return toast("No combined family payment is associated with this receipt.", "info");
+    const familyHtml = familyReceiptDoc(family, group.sort((a, b) => (a.studentName || "").localeCompare(b.studentName || "")), r.date, r.cashier);
+    previewHtml(familyHtml, { title: `Family Receipt ${family.familyId}` });
+  };
   const preview = el("div", { class: "doc-preview" });
   preview.innerHTML = `<div style="font-family:Arial">${html}</div>`;
   const m = modal({
@@ -22,6 +34,7 @@ export function showReceipt(receiptId) {
     footer: [
       btn("Print", { icon: "🖨️", onclick: () => previewHtml(html, { title: "Receipt " + r.receiptNo }) }),
       btn("Download Image", { onclick: () => downloadImage(html, { title: "Receipt " + r.receiptNo, filename: `Receipt_${r.receiptNo}.png` }) }),
+      family ? btn("Family Receipt", { variant: "primary", onclick: openFamilyReceipt }) : null,
       btn("WhatsApp", { variant: "success", onclick: () => {
         const phone = student?.parentPhone || student?.guardianPhone || "";
         shareDocumentToWhatsApp(html, { title: "Receipt " + r.receiptNo, filename: `Receipt_${r.receiptNo}.png`, phone });

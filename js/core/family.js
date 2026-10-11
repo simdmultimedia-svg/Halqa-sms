@@ -260,10 +260,12 @@ export function outstandingInvoices(family) {
 // mode "auto": oldest debt first. mode "manual": amounts keyed by invoiceId.
 export async function allocateFamilyPayment(family, { amount = 0, mode = "auto", manual = {}, cashier = "" }) {
   const receipts = [];
+  const familyPaymentId = `FPM-${Date.now()}-${uuid().slice(0, 8)}`;
+  const familyPayment = { familyPaymentId, familyId: family.id, familyCode: family.familyId };
   if (mode === "manual") {
     for (const { inv } of outstandingInvoices(family)) {
       const pay = num(manual[inv.id]);
-      if (pay > 0) { const r = await applyPayment(inv, { amount: Math.min(pay, inv.balance), cashier }); receipts.push(r.receipt); }
+      if (pay > 0) { const r = await applyPayment(inv, { amount: Math.min(pay, inv.balance), cashier, ...familyPayment }); receipts.push(r.receipt); }
     }
     return receipts;
   }
@@ -273,7 +275,7 @@ export async function allocateFamilyPayment(family, { amount = 0, mode = "auto",
     if ((inv.payments || []).length >= 2) continue; // billing caps installments
     const pay = Math.min(remaining, num(inv.balance));
     if (pay <= 0) continue;
-    const r = await applyPayment(inv, { amount: pay, cashier });
+    const r = await applyPayment(inv, { amount: pay, cashier, ...familyPayment });
     receipts.push(r.receipt);
     remaining -= pay;
   }

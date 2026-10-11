@@ -1,14 +1,15 @@
 import { db } from "../core/db.js";
 import { el, toast, naira, fmtDate, modal, debounce, num } from "../core/utils.js";
 import { card, pageHead, table, btn, input, select, field } from "../core/ui.js";
-import { invoiceDoc } from "../core/documents.js";
+import { invoiceDoc, familyInvoiceDoc } from "../core/documents.js";
 import { previewHtml, downloadPdf, buildDocHtml, generatePdfBlob, shareDocumentToWhatsApp, PRINT_CSS } from "../core/print.js";
 import { calculateInvoiceTotal, calculateTotalPaid } from "../core/calculations.js";
 import { logActivity } from "../core/activity.js";
-import { softDeleteInvoice, applyPayment } from "../core/billing.js";
+import { softDeleteInvoice, applyPayment, invoiceForStudent } from "../core/billing.js";
 import { can } from "../core/rbac.js";
 import * as cfg from "../core/config.js";
 import { editInvoiceFees } from "./students.js";
+import { getFamily, familyStudents, familyTotals } from "../core/family.js";
 
 const statusTag = (s) => {
   const cls = s === "PAID" ? "green" : s === "PARTIALLY PAID" ? "orange" : "red";
@@ -101,6 +102,24 @@ export function showInvoice(invoiceId, { afterClose } = {}) {
   if (!inv) return toast("Invoice not found", "error");
   const student = db.get("students", inv.studentId);
   const html = invoiceDoc(inv, student);
+  const family = student?.familyId ? getFamily(student.familyId) : null;
+  const familyDocument = () => {
+    if (!family || familyStudents(family).length < 2) return toast("This student is not linked to a multi-child family.", "info");
+    const rows = familyStudents(family).map((child) => {
+      const childInvoices = invoiceForStudent(child.id);
+      return {
+        fullName: child.fullName, classId: child.classId,
+        invoiceNo: childInvoices.map(i => i.invoiceNo).filter(Boolean).join(", "),
+        term: "All current records",
+        charges: childInvoices.reduce((sum, i) => sum + num(i.totalAmount), 0),
+        paid: childInvoices.reduce((sum, i) => sum + num(i.amountPaid), 0),
+        balance: childInvoices.reduce((sum, i) => sum + num(i.balance), 0)
+      };
+    });
+    const totals = familyTotals(family);
+    const familyHtml = familyInvoiceDoc(family, rows, totals, null);
+    previewHtml(familyHtml, { title: `Family Invoice ${family.familyId}` });
+  };
   const body = el("div", {});
   const preview = el("div", { class: "doc-preview" });
   preview.innerHTML = `<style>${PRINT_CSS}</style><div class="doc a4-fit">${html}</div>`;
@@ -110,6 +129,7 @@ export function showInvoice(invoiceId, { afterClose } = {}) {
     footer: [
       btn("Print", { icon: "🖨️", onclick: () => previewHtml(html, { title: "Invoice " + inv.invoiceNo }) }),
       btn("Download PDF", { onclick: () => downloadPdf(html, { title: "Invoice " + inv.invoiceNo, filename: `Invoice_${inv.invoiceNo}.pdf` }) }),
+      family ? btn("Family Invoice", { variant: "primary", onclick: familyDocument }) : null,
       btn("WhatsApp", { variant: "success", onclick: () => {
         const phone = student?.parentPhone || student?.guardianPhone || "";
         shareDocumentToWhatsApp(html, { title: "Invoice " + inv.invoiceNo, filename: `Invoice_${inv.invoiceNo}.png`, phone });

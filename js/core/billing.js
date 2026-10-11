@@ -202,7 +202,7 @@ export async function syncStudentProgramInvoice(student, { term = cfg.currentTer
   return recalcInvoice(inv);
 }
 
-export async function applyPayment(inv, { amount, paymentType, cashier }) {
+export async function applyPayment(inv, { amount, paymentType, cashier, familyPaymentId = "", familyId = "", familyCode = "" }) {
   amount = num(amount);
   if (amount <= 0) throw new Error("Enter a valid amount.");
 
@@ -212,7 +212,8 @@ export async function applyPayment(inv, { amount, paymentType, cashier }) {
     id: uuid(), receiptNo, invoiceId: inv.id, invoiceNo: inv.invoiceNo,
     studentId: inv.studentId, studentName: inv.studentName, admissionNo: inv.admissionNo,
     amount, paymentType: paymentType || (amount >= inv.balance ? "Full Payment" : "Part Payment"),
-    balance: 0, totalBill: inv.totalAmount, cashier: cashier || "", date: Date.now()
+    balance: 0, totalBill: inv.totalAmount, cashier: cashier || "", date: Date.now(),
+    familyPaymentId, familyId, familyCode
   };
   inv.payments = inv.payments || [];
   inv.payments.push({ receiptNo, amount, date: receipt.date });
