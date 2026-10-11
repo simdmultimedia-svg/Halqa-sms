@@ -38,7 +38,7 @@ export function normaliseRole(role) {
 // Module keys correspond to router views.
 export const MODULES = [
   "dashboard", "revenue", "admission", "enquiries", "admissionproposals", "regterm2", "regterm3", "migration", "students", "studentactivity", "bookshop",
-  "family", "fees", "invoices", "bulkinvoice", "receipts",
+  "family", "fees", "invoices", "bulkinvoice", "receipts", "manualdocuments", "printcenter",
   "attendance", "exams", "results", "reportcards", "promotion", "staff", "staffactivity", "payslip",
   "salary", "voucher", "expense", "scholarships", "inventory", "reports", "audit", "backup", "settings",
   "appreset", "healthcheck", "syncreport", "usermanagement", "rolediagnostics", "landingeditor", "onlineclasses", "complaints", "activities", "myprofile", "myresults", "myattendance", "myassignments", "mycbt", "myinvoices", "myreceipts", "myactivities", "lessonplans", "assignments",
@@ -52,7 +52,7 @@ export const DEFAULT_ROLE_ACCESS = {
   "Admin": ALL.filter(m => m !== "usermanagement" && m !== "rolediagnostics" && m !== "appreset"),
   "Principal": ["dashboard", "enquiries", "admissionproposals", "results", "reportcards", "staffactivity", "studentactivity", "scholarships", "lessonplans", "assignments", "exams", "staffperformance", "staffperformanceroster", "staffroster", "testimonials", "schemeofwork", "examtimetable", "graduations", "quranlink"],
   "Vice Principal": ["dashboard", "enquiries", "admissionproposals", "results", "reportcards", "staffactivity", "studentactivity", "scholarships", "lessonplans", "assignments", "exams", "staffperformance", "staffperformanceroster", "staffroster", "testimonials", "schemeofwork", "examtimetable", "graduations", "quranlink"],
-  "Accountant": ["dashboard", "students", "revenue", "fees", "invoices", "receipts", "family", "scholarships", "reports", "expense", "inventory", "bookshop", "payslip", "voucher", "complaints"],
+  "Accountant": ["dashboard", "students", "revenue", "fees", "invoices", "receipts", "manualdocuments", "printcenter", "family", "scholarships", "reports", "expense", "inventory", "bookshop", "payslip", "voucher", "complaints"],
   "Teacher": ["dashboard", "myprofile", "myattendance", "results", "lessonplans", "assignments", "exams", "mycbt", "payslip", "complaints", "staffroster", "schemeofwork", "examtimetable", "quranlink"],
   "Exam Officer": ["dashboard", "exams", "results", "reportcards", "students", "reports", "examtimetable", "quranlink"],
   "Librarian": ["dashboard", "bookshop", "inventory"],

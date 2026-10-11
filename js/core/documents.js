@@ -129,14 +129,14 @@ function invoiceApprovalSignaturesHtml() {
 }
 
 export function invoiceDoc(inv, student) {
-  const clsName = cfg.className(inv.classId || student?.classId);
-  const secName = cfg.sectionName(inv.sectionId || student?.sectionId);
+  const clsName = inv.manual ? (inv.className || "Not applicable") : (inv.className || cfg.className(inv.classId || student?.classId) || "Not applicable");
+  const secName = inv.manual ? (inv.sectionName || "Not applicable") : (inv.sectionName || cfg.sectionName(inv.sectionId || student?.sectionId) || "Not applicable");
   const fmtCls = clsName === "Pending Assignment" ? `<span style="color:var(--danger, red);font-weight:bold;">Pending Assignment</span>` : escapeHtml(clsName);
   const fmtSec = secName === "Pending Assignment" ? `<span style="color:var(--danger, red);font-weight:bold;">Pending Assignment</span>` : escapeHtml(secName);
 
   const qr = makeQr(JSON.stringify({ inv: inv.invoiceNo, sid: inv.studentId, adm: inv.admissionNo }), 84);
   const rows = (inv.services || []).map((s) => `<tr><td>${escapeHtml(s.name)}</td><td class="right">${naira(calculateLineTotal(s))}</td></tr>`).join("");
-  const programText = student ? cfg.studentProgramIds(student).map((id) => cfg.programName(id)).join(", ") : "";
+  const programText = student ? cfg.studentProgramIds(student).map((id) => cfg.programName(id)).join(", ") : (inv.programText || inv.manualLabel || "Manual billing");
   const payRows = (inv.payments || []).map((p) =>
     `<tr><td>${escapeHtml(p.receiptNo)}</td><td>${fmtDate(p.date)}</td><td class="right">${naira(p.amount)}</td></tr>`).join("")
     || `<tr><td colspan="3" class="muted center">No payments yet</td></tr>`;
@@ -153,7 +153,7 @@ export function invoiceDoc(inv, student) {
   ${invoiceHeaderHtml(student)}
   <div class="invoice-title-row">
     <div>
-      <div class="invoice-title">Fee Invoice</div>
+      <div class="invoice-title">${escapeHtml(inv.manual ? "Manual Invoice" : "Fee Invoice")}</div>
       <div class="invoice-subtitle">Official school financial document</div>
     </div>
     <div class="invoice-balance-card"><span>Outstanding Balance</span><b>${naira(inv.balance)}</b></div>
@@ -161,8 +161,8 @@ export function invoiceDoc(inv, student) {
   <div class="invoice-details-grid">
     <div><span>Invoice Number</span><b>${escapeHtml(inv.invoiceNo)}</b></div>
     <div><span>Invoice Date</span><b>${fmtDate(inv.createdAt)}</b></div>
-    <div><span>Student Name</span><b>${escapeHtml(student?.fullName || inv.studentName)}</b></div>
-    <div><span>Admission Number</span><b>${escapeHtml(inv.admissionNo)}</b></div>
+    <div><span>${inv.manual ? "Customer / Recipient" : "Student Name"}</span><b>${escapeHtml(student?.fullName || inv.studentName || inv.customerName || "Walk-in Customer")}</b></div>
+    <div><span>${inv.manual ? "Reference" : "Admission Number"}</span><b>${escapeHtml(inv.admissionNo || inv.customerReference || "N/A")}</b></div>
     <div><span>Class</span><b>${fmtCls}</b></div>
     <div><span>Section</span><b>${fmtSec}</b></div>
     <div><span>Session</span><b>${escapeHtml(inv.session)}</b></div>
@@ -171,9 +171,9 @@ export function invoiceDoc(inv, student) {
     <div><span>Invoice Type</span><b>${escapeHtml(inv.type || "New Student")}</b></div>
   </div>
   <div class="invoice-mini-row">
-    <div><b>Student ID:</b> ${escapeHtml(student?.studentId || inv.studentId)}</div>
+    <div><b>${inv.manual ? "Contact:" : "Student ID:"}</b> ${escapeHtml(student?.studentId || inv.customerPhone || inv.studentId || "N/A")}</div>
     <div><b>Programs:</b> ${escapeHtml(programText || cfg.sectionName(student?.sectionId))}</div>
-    <div><b>Parent:</b> ${escapeHtml(student?.parentName || "")}${student?.parentPhone ? " | " + escapeHtml(student.parentPhone) : ""}</div>
+    <div><b>${inv.manual ? "Address:" : "Parent:"}</b> ${escapeHtml(inv.manual ? (inv.customerAddress || "N/A") : (student?.parentName || ""))}${!inv.manual && student?.parentPhone ? " | " + escapeHtml(student.parentPhone) : ""}</div>
   </div>
   <table class="doc-table invoice-fee-table">
     <colgroup><col style="width:72%"><col style="width:28%"></colgroup>
@@ -205,14 +205,14 @@ export function receiptDoc(receipt, student, invoice) {
   return `
   <section class="a4-one-page receipt-doc">
   ${headerHtml()}
-  <div class="doc-title">Payment Receipt</div>
+  <div class="doc-title">${escapeHtml(receipt.manual ? "Manual Payment Receipt" : "Payment Receipt")}</div>
   <div class="row" style="display:flex;justify-content:space-between">
     <div class="kv" style="flex:1">
       <div><span>Receipt No:</span> <b>${escapeHtml(receipt.receiptNo)}</b></div>
       <div><span>Date:</span> ${fmtDateTime(receipt.date)}</div>
-      <div><span>Student:</span> ${escapeHtml(student?.fullName || receipt.studentName)}</div>
-      <div><span>Admission No:</span> ${escapeHtml(receipt.admissionNo)}</div>
-      <div><span>Class:</span> ${escapeHtml(cfg.className(student?.classId))}</div>
+      <div><span>${receipt.manual ? "Customer / Recipient" : "Student"}:</span> ${escapeHtml(student?.fullName || receipt.studentName || receipt.customerName || "Walk-in Customer")}</div>
+      <div><span>${receipt.manual ? "Reference" : "Admission No"}:</span> ${escapeHtml(receipt.admissionNo || receipt.customerReference || "N/A")}</div>
+      <div><span>${receipt.manual ? "Contact" : "Class"}:</span> ${escapeHtml(receipt.manual ? (receipt.customerPhone || "N/A") : cfg.className(student?.classId))}</div>
       <div><span>Invoice:</span> ${escapeHtml(receipt.invoiceNo || "")}</div>
     </div>
     <div style="text-align:center">${photoHtml}</div>

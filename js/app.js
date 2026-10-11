@@ -62,7 +62,7 @@ const NAV = [
     group: "Finance", items: [
       ["revenue", "Revenue Forecast", "📈"],
       ["fees", "Fees & Payments", "💰"], ["bulkinvoice", "Bulk Invoice Generator", "⚡"], ["family", "Family Ledger", "👪"],
-      ["invoices", "Invoices", "🧾"], ["receipts", "Receipts", "🧾"], ["expense", "Expenses", "📉"],
+      ["invoices", "Invoices", "🧾"], ["receipts", "Receipts", "🧾"], ["manualdocuments", "Manual Invoice & Receipt", "✍️"], ["printcenter", "Print Center", "🖨️"], ["expense", "Expenses", "📉"],
       ["scholarships", "Scholarships & Discounts", "🎓"]]
   },
   {
@@ -107,6 +107,8 @@ const MODULE_LOADERS = {
   fees: () => import("./modules/fees.js"),
   invoices: () => import("./modules/invoices.js"),
   receipts: () => import("./modules/receipts.js"),
+  manualdocuments: () => import("./modules/manualdocuments.js"),
+  printcenter: () => import("./modules/manualdocuments.js"),
   expense: () => import("./modules/expense.js"),
   scholarships: () => import("./modules/scholarships.js"),
   revenue: () => import("./modules/revenue.js"),
@@ -369,7 +371,7 @@ async function navigateTo(key, _route, param) {
   try {
     const mod = await MODULE_LOADERS[key]();
     content.innerHTML = "";
-    const res = await mod.render(content, { user: { ...user, role }, param, go });
+    const res = await mod.render(content, { user: { ...user, role }, key, param, go });
     if (typeof res === "function") currentUnsub = res;
     window.dispatchEvent(new CustomEvent("app:route-rendered", { detail: { key, ms: Math.round(performance.now() - routeStart) } }));
   } catch (e) {
